@@ -1,0 +1,1790 @@
+変更の重要度
+インターフェースの変更:0.xx0000
+内部動作の変更:0.00xx00
+バグフィックス:0.0000xx
+
+※上位桁が増えたら下位桁は0にリセット
+
+
+-----------------------------------------------------------------
+Version::1.000100
+Date:2012/07/09
+File:jcup_config.f90
+Routines
+ read_coupler_setting : mod
+ read_model_namelist : mod
+ read_send_namelist : mod
+ read_recv_namelist : mod
+Detail
+namelist fileのcoupler settingでデフォルト値を
+使用出来るよう、エラー処理をstatus < 0の場合に
+変更。
+
+-----------------------------------------------------------------
+Version:1.000101
+Date:2012/07/17
+File:jcup_interface.f90
+Routines
+ jcup_put_data_1d_double : mod
+Detail
+一つのデータに対してtime_lag = 0を含む複数の送信が存在する場合に、
+最初のtime_lag == 0でreturnしてしまう不具合を修正。
+
+-----------------------------------------------------------------
+Version:1.010000
+Date:2012/07/20
+File:jcup_interface.f90
+Routines
+ jcup_get_num_of_send_data : add
+ jcup_get_send_data_name : add
+ jcup_get_num_of_recv_data : add
+ jcup_get_recv_data_name : add
+Detail
+config fileに記されている送信データの数とデータ名、受信データの数と
+データ名を得る関数を追加。
+
+-----------------------------------------------------------------
+Version:1.010100
+Date:2012/07/23
+File:jcup_config.f90
+Routines
+ init_conf : mod
+ read_conf_file_2 : mod
+ read_remapping_namelist : add
+ get_num_of_remapping_table : add
+Detail
+coupler.confにremapping tableに関するセクションを追加。
+jcup_config.f90でremapping table情報を記録する構造体と読み込みルーチンを追加。
+
+-----------------------------------------------------------------
+Version:1.010200
+Date:2012/08/09
+File:jcup_utils.f90
+Routines
+ set_date_time_string : mod
+ IDate2CDate : mod
+Detail
+時刻を文字列に変換する際、十の位を０で埋めるよう修正。
+
+-----------------------------------------------------------------
+Version:1.010300
+Date:2012/08/09
+File:jcup_interface.f90
+Routines
+ jcup_end_var_def : mod
+ jcup_set_mapping_table : mod
+Detail
+jcup_set_mapping_tableをコールした際、jcup_end_var_defがコールされたか
+どうかのチェックを追加。
+
+-----------------------------------------------------------------
+Version:1.020000
+Date:2012/08/14
+File:jcup_interface.f90, jcup_config.f90
+Routines
+ jcup_get_comp_num_from_name : add
+ get_comp_name_from_comp_id : add
+Detail
+コンポーネント名からコンポーネント番号を返す関数を追加。
+
+-----------------------------------------------------------------
+Version:1.030000
+Date:2012/08/14
+File:jcup_interpolation.f90, jcup_grid.f90
+Routines
+ interpolate_data_id : mod
+ interface, interpolate_data : mod
+Detail
+サブルーチンinterpolate_dataの引数をrecv_comp_id, send_comp_id
+からrecv_comp_name, send_comp_nameに変更。
+
+-----------------------------------------------------------------
+Version:1.030001
+Date:2012/08/14
+File:jcup_config.f90
+Routines
+ reorder_conf_data : mod
+Detail
+configファイルに記述されていながら、実行されないコンポーネントが存在する
+事を許すため、受信フラグを0にする。
+
+-----------------------------------------------------------------
+Version:2.000000
+Date:2012/08/16
+File:jcup_comp.f90 jcup_config.f90, jcup_data.f90 jcup_interface.f90
+
+Routines
+ set_global_component : add
+ searh_next_process : add
+ add_comp_name : add
+
+ set_default_config : add
+ set_send_config : add
+ set_recv_config : add
+ set_def_varp : mod
+ end_def_varp : add
+ set_def_varg : mod
+ end_def_varg : add
+
+ exchange_send_config_info : add
+ exchange_recv_config_info : add
+ set_configuration :: add
+
+ jcup_initialize : mod
+ jcup_set_default_configuration : add
+ jcup_def_varp : mod
+ jcup_def_varg : mod
+ jcup_end_var_def : mod
+Detail
+configファイルをなくす。そのために、configファイルから読み込まれていた各種
+設定をサブルーチンの引数として渡すようにする。
+
+-----------------------------------------------------------------
+Version:2.010000
+Date:2012/11/05
+File:jcup_utils.f90, jcup_interface.f90
+Routines
+ set_log_level : mod
+ finalize_log  : mod
+
+ jcup_suspend_log : add
+
+Detail
+ログファイルの出力を抑制するためのサブルーチンjcup_suspend_logを追加。
+
+-----------------------------------------------------------------
+Version:2.010001
+Date:2013/1/10
+File:jcup_utils.f90, jcup_grid.f90
+Routines
+ set_log_level : mod
+ error : mod
+ module jcup_pe_arrayの宣言部 : mod
+ 
+Detail
+バグ修正。module jcup_pe_arrayの宣言部にpublic single_pe_array_typeを追加
+
+-----------------------------------------------------------------
+Version:2.020000
+Date:2013/2/5
+File:jcup_interface.f90
+Routines
+ jcup_is_model_running : add
+ 
+Detail
+ あるコンポーネントが実行されているかどうかを返す関数を追加。
+
+-----------------------------------------------------------------
+
+Version:2.020001
+Date:2013/2/5
+File:jcup_interface.f90
+Routines
+ jcup_set_default_configuration : mod
+ 
+Detail
+ init_data_defのチェックとコールを追加。
+
+-----------------------------------------------------------------
+
+Version:2.030000
+Date:2013/4/1
+File:jcup_interface.f90, jcup_constant.f90
+Routines
+ integer, public, parameter :: NUM_OF_EXCHANGE_DATA => integer, public :: NUM_OF_EXCHANGE_DATA
+ jcup_def_grid : mod
+ jcup_end_grid_def : mod
+
+Detail
+ NUM_OF_EXCHANGE_DATAを変数とし、jcup_def_gridのoptional引数で値をセットするようにした。
+ jcup_end_grid_defでAllreduceMaxをとり、全体の最大値をNUM_OF_EXCHANGE_DATAとする。
+
+-----------------------------------------------------------------
+
+Version:2.030001
+Date:2013/4/9
+File:jcup_interface.f90
+Routines
+ jcup_exchange_data_local : mod
+
+Detail
+ jcup_exchange_localのデータ毎の送受信時刻判定を修正。送受信モデルともにis_send_step_dataで判定していたが、
+ 受信側モデルは送信側モデルの現在時刻やΔTを知らないので、本来これは無理。
+ 受信側モデルはis_recv_step_dataで判定するようにした。
+
+-----------------------------------------------------------------
+
+Version:2.040000
+Date:2013/4/11
+File:jcup_interface.f90
+Routines
+ jcup_log : add
+
+Detail
+ ログ出力用サブルーチンjcup_logを追加。
+
+-----------------------------------------------------------------
+
+Version:3.000000
+Date:2013/5/29
+File:jcup_io_base.f90 jcup_interface.f90
+Routines
+ jcup_write_restart, jcup_read_restart : add
+
+Detail
+ リスタートデータ入出力サブルーチンjcup_write_restart, jcup_read_restartを追加。
+
+-----------------------------------------------------------------
+
+Version:3.010000
+Date:2013/9/10
+File:jcup_interface.f90
+Routines
+ jcup_set_time : add
+
+Detail
+ 時間を初期時刻からの秒(実数）で扱っている場合のインターフェースを追加。Scup互換仕様。
+
+-----------------------------------------------------------------
+
+Version:3.010100
+Date:2013/9/18
+File:jcup_interface.f90
+Routines
+ jcup_put_data_1d_double, jcup_get_data_1d_double : mod
+
+Detail
+ time_lag = 0の場合、データ単位で即時送受信するように修正。
+
+-----------------------------------------------------------------
+
+Version:3.020000
+Date:2013/9/20
+File:jcup_grid_base.f90 jcup_interface.f90
+Routines
+ get_grid_info : add
+ jcup_get_grid_info : add
+
+Detail
+ 各コンポーネントの格子番号情報を取得するサブルーチンを追加。
+
+-----------------------------------------------------------------
+
+Version:3.020001
+Date:2014/2/14
+File:jcup_grid_base.f90
+Routines
+ set_global_mapping_table : mod
+
+Detail
+ 変数index_bufferの添え字範囲に関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030000
+Date:2014/2/27
+File:jcup_interpolation_interface.f90, jcup_grid.f90
+
+Routines
+ set_local_coef_n : mode
+ recv_coef_from_send_model_n : mod
+ set_operation_index : add
+
+Detail
+ jcup_interpolation_interfaceでグローバルな補間係数をローカルに
+ 分配する処理のバグを修正
+
+-----------------------------------------------------------------
+
+Version:3.030100
+Date:2014/3/14
+File:jcup_grid.f90
+
+Routines
+ def_grid : mode
+
+Detail
+ def_grid内部でサブルーチンcheck_grid_indexをコールしているが、この
+ チェックは格子の計算時間を要求するため、コメントアウト
+
+-----------------------------------------------------------------
+
+Version:3.030101
+Date:2014/6/18
+File:jcup_mpi_lib.f90, jcup_comp.f90, jcup_interface.f90
+
+Routines
+ jml_allreduce_maxint1d : mod
+ init_my_component_info : mod
+ jcup_end_grid_def      : mod
+
+Detail
+ allreduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030102
+Date:2014/6/18
+File:jcup_mpi_lib.f90, jcup_comp.f90
+
+Routines
+ jml_allreduce_minint1d : mod
+ search_next_process    : mod
+
+Detail
+ allreduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030103
+Date:2014/6/18
+File:jcup_mpi_lib.f90
+
+Routines
+ jml_reduce_sum_int_1d : mod
+
+Detail
+ reduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030104
+Date:2014/6/18
+File:jcup_mpi_lib.f90
+
+Routines
+ jml_allreduce_sumint1d : mod
+
+Detail
+ reduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030105
+Date:2014/6/18
+File:jcup_mpi_lib.f90, jcup_grid_base.f90
+
+Routines
+ jml_reduce_sum_int_1d_local : mod
+ set_global_mapping_table    : mod
+Detail
+ reduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030106
+Date:2014/6/18
+File:jcup_mpi_lib.f90, jcup_grid_base.f90
+
+Routines
+ jml_reduce_min_int_1d_local : mod
+ set_global_mapping_table    : mod
+Detail
+ reduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030107
+Date:2014/6/18
+File:jcup_mpi_lib.f90, jcup_grid_base.f90, jcup_interpolation_interface.f90
+
+Routines
+ jml_reduce_max_int_1d_local : mod
+ set_global_mapping_table    : mod
+ set_local_coefficients      : mod
+
+Detail
+ reduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030108
+Date:2014/6/18
+File:jcup_mpi_lib.f90
+
+Routines
+ jml_allreduce_max_int_1d_local : mod
+
+Detail
+ allreduceに関するバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.030109
+Date:2014/6/19
+File:jcup_grid_base.f90
+
+Routines
+ send_index2pe : mod
+ recv_index2pe : mod
+
+Detail
+ 送信側のindex2pe(min:max)に対して、受信側のindex2pe(max-min+1)に
+ なっていたバグを修正。
+
+
+-----------------------------------------------------------------
+
+Version:3.030200
+Date:2014/6/23
+File:jcup_constant.f90
+
+Routines
+ NUM_OF_EXCHANGE_DATA : mod
+
+Detail
+ 定数NUM_OF_EXCHANGE_DATAの定数を５から１に修正。これに伴い、
+ mod_mojのサブルーチンmod_def_gridに引数NICを追加。
+ call jcup_def_gridの引数に追加。
+
+-----------------------------------------------------------------
+
+Version:3.040000
+Date:2014/7/11
+File:jcup_time.f90, jcup_buffer.f90, jcup_interface.f90
+
+Routines
+ jcup_time.f90をはじめ多数
+
+Detail
+ Jcupにおいてミリ秒、マイクロ秒単位の時刻を扱えるようにした。そのため、
+ jcup_time.f90をはじめjcup_interface.f90やjcup_buffer.f90など、複数の
+ ファイルに修正を施している。
+
+-----------------------------------------------------------------
+
+Version:3.040001
+Date:2014/7/15
+File:jcup_interface.f90
+
+Routines
+ jcup_init_time_int : mod
+ jcup_read_restart  : mod
+
+Detail
+ jcup_read_restartをコールした後にjcup_init_timeをコールすると、内部で
+ 保持する初期時刻が上書きされてしまうバグ。jcup_read_restartがコールさ
+ れたら、jcup_init_timeによる時刻設定をスキップするよう改修。
+
+-----------------------------------------------------------------
+
+Version:3.040100
+Date:2014/7/16
+File:jcup_config.f90
+
+Routines
+ get_send_data_conf_ptr_name : mod
+ get_recv_data_conf_ptr_name : mod
+
+Detail
+ 引数で与えられたdata_nameが存在しないときに、最初のポインタを返すよう
+ になっていた。これを、該当する名前がないときにはエラーになるよう変更。
+
+-----------------------------------------------------------------
+
+Version:3.040200
+Date:2014/7/16
+File:jcup_interface.f90, jcup_io_base.f90, jcup_mpi_lib.f90
+
+Routines
+ jcup_write_restart, jcup_read_restart他
+
+Detail
+ リスタートデータの出入力がマルチカテゴリデータ（マルチレベルデータ）
+ に対応していなかった。num_of_dataが１より大きいときに、マルチレベルで
+ データ出入力するよう、プログラムを改修。
+
+-----------------------------------------------------------------
+
+Version:3.040201
+Date:2014/7/16
+File:jcup_config.f90
+
+Routines
+ exchange_recv_config_info : mod
+
+Detail
+ 受信データ情報を各コンポーネント間で送受信するサブルーチンにおいて、
+ num_of_dataを交換していなかったバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.050000
+Date:2014/7/17
+File:jcup_interface.f90
+
+Routines
+ jcup_put_data_25d_double : mod
+ jcup_get_data_25d_double : mod
+
+Detail
+ 引数からデータ数(num_of_data)を削除。
+
+-----------------------------------------------------------------
+
+Version:3.060000
+Date:2014/08/27
+File:jcup_interface.f90, jcup_comp.f90, jcup_mpi_lib.f90
+
+Routines
+ jcup_initialize : mod
+ init_model_process : mod
+ jml_init : mod
+
+Detail
+ MPI_INITをコールするかどうかを引数で与えるのではなく、
+ MPI_initialzedの結果から判定するように変更。
+
+-----------------------------------------------------------------
+
+Version:3.070000
+Date:2014/08/27
+File:jcup_interface.f90, jcup_mpi_lib.f90
+
+Routines
+ jcup_coupling_end : mod
+ jml_finalize : mod
+
+Detail
+ MPI_Finalizeをコールするかどうかを引数で与えるのではなく、
+ MPI_finalizedの結果から判定するように変更。
+
+-----------------------------------------------------------------
+
+Version:3.070100
+Date:2014/09/02
+File:jcup_interface.f90
+
+Routines
+ jcup_init_time_int : mod
+
+Detail
+ call write_grid_mapping_infoをコメントアウト。
+
+-----------------------------------------------------------------
+
+Version:3.070200
+Date:2014/11/11
+File:jcup_interface.f90, jcup_time.f90, jcup_buffer.f90, jcup_io_base.f90, jcup_mpi_lib.f90
+
+Routines
+ jcup_set_time他多数 : add, mod
+
+Detail
+ Jcupの時間管理でカレンダー計算を廃止し、初期時刻からの経過時間（秒、ミリ秒、マイクロ秒）
+ のみでデータ交換を管理するようにした。プログラム改修箇所および改修内容は多岐かつ大規模
+ であり大幅なヴァージョンアップになる。
+
+-----------------------------------------------------------------
+
+Version:3.080000
+Date:2014/11/11
+File:jcup_interface.f90
+
+Routines
+ jcup_inc_calendar :  add
+
+Detail
+ Jcupの時間管理でカレンダー計算を廃止したため、モデル側のカレンダーをインクリメントする
+ サービスサブルーチンを別途作成した。
+
+-----------------------------------------------------------------
+
+Version:3.080001
+Date:2014/11/14
+File:jcup_interface.f90
+
+Routines
+ jcup_coupling_end :  mod
+
+Detail
+ Jcupの時間管理の変更に伴い、serialデータ交換の最終ステップで相手に送る場合にjcup_set_time
+ のコールをコメントアウトし、current_comp_id = iとした。
+
+-----------------------------------------------------------------
+
+Version:3.080002
+Date:2014/11/19
+File:jcup_interface.f90
+
+Routines
+ jcup_exchange_data_serial :  mod
+
+Detail
+ Jcupの時間管理の変更に伴い、serialデータ交換の第一ステップでデータ交換をスキップしていた
+ returnをコメントアウトした。
+
+-----------------------------------------------------------------
+
+Version:3.080003
+Date:2014/11/19
+File:jcup_interface.f90
+
+Routines
+ jcup_set_date_time_int :  mod
+
+Detail
+ マルチコンポーネント実行時のデータ交換制御のバグ。if (current_time == time)を if (current_time >= time)
+ に修正した。
+
+-----------------------------------------------------------------
+
+Version:3.080004
+Date:2014/11/19
+File:jcup_interface.f90
+
+Routines
+ jcup_put_data_25d_double :  mod
+
+Detail
+ マルチコンポーネント実行時のデータputのバグ。average dataのコンポーネントIDをcurrent_comp_idからmy_comp_idに
+ 修正した。
+
+-----------------------------------------------------------------
+
+Version:3.080005
+Date:2014/12/12
+File:jcup_time.f90
+
+Routines
+ read_time :  mod
+ write_time : mod
+
+Detail
+ リスタートの時刻出入力で、全コンポーネントの時刻を対象とするのではなく当該コンポーネントの時刻のみを出入力
+ するように修正した。
+
+-----------------------------------------------------------------
+
+Version:3.080100
+Date:2014/12/12
+File:jcup_comp.f90
+
+Routines
+ sort_component_name :  add
+ init_model_process  : mod
+
+Detail
+ リスタートの時にコンポーネントの割り当てを変えてコンポーネントIDが変わるとデータIDが変わりエラーとなる。それを
+ 回避するため、コンポーネントIDは割り当て順ではなく名前順に割り当てるようにした。
+
+-----------------------------------------------------------------
+
+Version:3.090000
+Date:2015/02/23
+File:jcup_interface.f90, jcup_data.f90
+
+Routines
+ get_varp_data_dim    : add
+ get_varg_data_dim    : add
+ get_varp_num_of_data : add
+ get_varg_num_of_data : add
+ jcup_put_value       : add
+ jcup_get_value       : add
+
+Detail
+ 水平２次元データを１次元に変換する操作が不必要に時間をとる恐れがあるので、水平２次元、あるいは３次元のデータを
+ そのまま入力とし、カップラー内部でポインタを用いて型変換を行うサブルーチンjcup_put_value, jcup_get_valueを追加した。
+ このサブルーチンを用いることで、明示的な型変換の必要なくデータのPut、Getができる。
+
+
+-----------------------------------------------------------------
+
+Version:3.090001
+Date:2015/03/26
+File:jcup_time.f90
+
+Routines
+ time_type : mod
+
+Detail
+ jcup_init_timeで時間を初期化する際にjcup_timeのcurrent_timeを未定義のまま右辺値としていた。
+ この不具合を解消するため、time_type内でyyyy, mo, dd, hh, mm = 0のように明示的に初期値を
+ 与えるようにした。
+
+-----------------------------------------------------------------
+
+Version:3.100000
+Date:2015/04/03
+File:jcup_interface.f90 jcup_exchange.f90 jcup_mpi_lib.f90
+
+Routines
+ jcup_put_data_1d_double  : mod
+ jcup_put_data_25d_double : mod
+ jcup_get_data_1d_double  : mod
+ jcup_get_data_25d_double : mod
+ jcup_coupling_end        : mod
+ jml_send_double_1d_leader : mod
+ jml_recv_double_1d_leader : mod
+ jml_ProbeLeader           : add
+ send_data_scalar          : add
+ recv_data_scalar          : add
+ recv_all_scalar_data      : add
+
+Detail
+ Jcupで配列データとは別にスカラ量を送受信するために、モジュールjcup_exchangeを作成、送受信サブルーチンを作成した。
+ このサブルーチンからコールされるjml_send_double_1d_leader,  jml_recv_double_1d_leaderを修正。またjml_ProbeLeaderを
+ 作成した。インターフェースサブルーチンjcup_put_data, jcup_get_dataを修正しスカラ値のPut, Getをできるようにした。
+
+-----------------------------------------------------------------
+
+Version:3.100100
+Date:2015/04/06
+File:jcup_interface.f90 jcup_io_base.f90 jcup_exchange.f90 jcup_mpi_lib.f90
+
+Routines
+ jcup_write_restart  : mod
+ jcup_read_restart   : mod
+ jcup_write_restart_gmean : add
+ jcup_read_restart_gmean  : add
+ set_master_file_name     : add
+ write_all_scalar_data    : add
+ jml_BarrierLeader        : add
+
+Detail
+ Ver.3.100000で追加したスカラ量の送受信について、スカラ量のリスタートをサポートするようにした。そのため、jcup_io_base
+ にサブルーチンjcup_write_restart_gmean, jcup_read_restart_gmeanを追加し、さらに、jcup_exchangeにwrite_all_scalar_data
+ を追加した。また、スカラ量はリスタートファイル出力時にRecvしなければならず、コンポーネント間で同期が必要なため、
+ jcup_mpi_libにjml_BarrierLeaderを作成し、リスタート時にコールするようにした。
+
+-----------------------------------------------------------------
+
+Version:3.100101
+Date:2015/04/14
+File:jcup_io_base.f90
+
+Routines
+ jcup_write_restart_gmean : mod
+
+Detail
+ スカラ量のリスタート出力で、コンポーネントの組み合わせによってjml_BarrierLeaderのコールのタイミングが不適切になる
+ バグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.100200
+Date:2015/04/14
+File:jcup_grid_base.f90
+
+Routines
+ get_grid_index : add
+
+Detail
+ 格子番号配列を返すサブルーチンを追加。
+
+-----------------------------------------------------------------
+
+Version:3.100300
+Date:2015/05/18
+File:jcup_mpi_lib.f90, jcup_exhcange.f90
+
+Routines
+ jml_reduce_sum_double_1d_local : add
+ jml_reduce_mean_double_1d_local : add
+ send_data_scalar : mod
+
+Detail
+ スカラ値の送信時に、各ノードの平均値を計算するよう修正。
+
+-----------------------------------------------------------------
+
+Version:3.100400
+Date:2015/06/04
+File:jcup_mpi_lib.f90
+
+Routines
+ jml_create_communicator : mod
+
+Detail
+ inter_communicatorの生成時に、自分自身同士のコミュニケータも生成するよう修正。この修正はScup互換性を保つため。Scupは同じ
+ コンポーネント同士のデータ交換を許容する。ただしこの修正だけで同じコンポーネント間のデータ交換ができるようになるかどうかは
+ 不明。
+
+-----------------------------------------------------------------
+
+Version:3.100401
+Date:2015/06/12
+File:jcup_time.f90
+
+Routines
+ type time_type : mod
+
+Detail
+ 年月日時分秒の初期化部分のバグ修正。
+
+-----------------------------------------------------------------
+
+Version:3.100500
+Date:2015/06/12
+File:jcup_data.f90
+
+Routines
+ type varp_type, varg_type : mod
+
+Detail
+ varp_type, varpg_typeのprivateを削除。
+
+-----------------------------------------------------------------
+
+Version:3.100501
+Date:2015/06/17
+File:jcup_exchange.f90
+
+Routines
+ send_data_scalar : mod
+
+Detail
+ if (.not.jml_isLocalLeader(sd%model_id)) returnをコメントアウト。Scalarデータはlocal meanを計算しなければならないため、
+ local leaderでなければreturnするのは不適切。
+
+
+-----------------------------------------------------------------
+
+Version:3.100502
+Date:2015/06/17
+File:jcup_mpi_lib.f90, jcup_exchange.f90
+
+Routines
+ jml_ProbeAll : new
+ jml_RecvAll  : new
+ recv_all_scalar_data : mod
+
+Detail
+ プログラム終了時にMPIバッファにデータが残っていたらMPI_Finalizeでハングする。この問題はgmeanデータの送受信で発生する。
+ recv_all_scalar_dataを修正し、特定のタグではなくMPI_ANY_TAGでプローブし、受信するようにした。
+
+-----------------------------------------------------------------
+
+Version:3.100503
+Date:2015/06/18
+File:jcup_config.f90
+
+Routines
+ set_model_exchange_type : mod
+
+Detail
+ 同一バイナリでのシリアル通信時に、片側のみの送受信の場合データ受信がスキップされる。この問題はjcup_exchange_data_serial内で、
+ before_comp_idに関わる判定に起因する。両側送受信ではこの問題は発生しないため、set_model_exchange_typeを修正し、送受信データが
+ 存在しない場合でもmodel_exchange_typeに意味のある値を代入するようにした。この修正により、送受信データがない場合でも
+ jcup_exchange_data_serialがコールされ、その結果before_comp_idに関わる判定も想定した動作をするようになった。
+
+-----------------------------------------------------------------
+
+Version:3.100504
+Date:2015/07/03
+File:jcup_config.f90
+
+Routines
+ set_model_exchange_type : mod
+
+Detail
+ コンポーネント間でのデータ交換タイムラグの設定で、受信データの最後のデータのラグをコンポーネントのラグとするようにしていた。
+ この場合、最後のデータがimmediateかつ他のデータが別のラグだった場合、動作がおかしくなる。そこで、全受信データのラグが０
+ の場合のみimmediateとするようにした。
+
+-----------------------------------------------------------------
+
+Version:3.100600
+Date:2015/07/15
+File:jcup_interface.f90
+
+Routines
+ jcup_get_data_25d_double      : mod
+ jcup_put_send_data_25d_double : new
+ jcup_get_data_25d_double      : mod
+ jcup_recv_get_data_25d_double : new
+
+Detail
+ 2.5次元データの逐次送受信を実装していなかったので実装した。
+
+-----------------------------------------------------------------
+
+Version:3.100601
+Date:2015/08/19
+File:jcup_interface.f90
+
+Routines
+ jcup_initialize               : mod
+ jcup_init_time_int            : mod
+
+Detail
+ set_time_dataの第７引数がinteger(kind=8)を要求しているのに対し、整数(0や-1)を与えると
+ コンパイラによってはコンパイルエラーになる。これを回避するためint(変数, kind=8)とする。
+
+-----------------------------------------------------------------
+
+Version:3.100602
+Date:2015/09/04
+File:jcup_interface.f90
+
+Routines
+ type(time_type), current_time : mod
+
+Detail
+ FXコンパイラでcurrent_timeの宣言はsave属性でなければならないとエラーになったのでsave
+ 属性を付加する。
+
+-----------------------------------------------------------------
+
+Version:3.110000
+Date:2015/11/24
+File:jcup_interface.f90, jcup_io_base
+
+Routines
+ set_master_file_name    : mod
+ jcup_write_restart      : mod
+ jcup_read_restart       : mod
+ jcup_read_restart_gmean : mod
+ jcup_coupling_end       : mod
+
+Detail
+ リスタート出入力サブルーチンには時刻を指定する引数time_arrayがあった。しかしJcup自体が
+ 現在時刻を必要としなくなり、また分野によっては現在時刻の概念そのものがないモデルも多い
+ ため、time_arrayをoptional引数とし、存在しない場合には-1をset_master_file_nameに渡すように
+ した。set_master_file_nameでは時刻が負の場合に、マスタファイル名に時刻情報を含めないようにした。
+ なお、データファイル名には今まで通り積分初期からの経過時刻（秒）が用いられる。
+ gmeanデータは存在しない場合があるので、読み込み時にファイルがなければエラーではなく黙って戻るようにした。
+ jcup_coupling_endの引数time_arrayも内部で使われていないため、optional引数にした。
+
+-----------------------------------------------------------------
+
+Version:3.110001
+Date:2015/11/24
+File:jcup_config.f90
+
+Routines
+ set_model_exchange_type  : mod
+
+Detail
+ 送信、受信がone wayのときに送受信モードの設定が-1となってしまい正しく送受信されないバグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.110100
+Date:2015/12/24
+File:jcup_interface.f90
+
+Routines
+ jcup_put_value : mod
+ jcup_get_value : mod
+
+Detail
+ Fortran2003に対応していないコンパイラのために、コンパイルオプションでjcup_put_value, jcup_get_value
+ をコンパイルしないオプションを追加
+
+-----------------------------------------------------------------
+
+Version:3.110101
+Date:2016/02/10
+File:jcup_mpi_lib.f90
+
+Routines
+ jml_send_real_1d_leader : mod
+
+Detail
+ bufferがintegerで定義されていたのをreal(kind=4)に訂正。
+
+-----------------------------------------------------------------
+
+Version:3.110102
+Date:2016/03/02
+File:jcup_time.f90
+
+Routines
+ set_buffer : mod
+
+Detail
+ intent(OUT) :: buffer(:)をintent(INOUT) :: buffer(:)に修正
+
+-----------------------------------------------------------------
+
+Version:3.110103
+Date:2016/05/24
+File:jcup_time.f90
+
+Routines
+ is_leap_year : add
+ GetYearDate  : mod
+ GetMonthDate : mod
+
+Detail
+ 閏年の対応に不備(100で割り切れる年にも閏年になっていた）。関数is_leap_yearを作成し、バグを修正。
+
+-----------------------------------------------------------------
+
+Version:3.120000
+Date:2016/07/05
+File:jcup_mpi_lib.f90, jcup_interpolation_interface.f90, jcup_interface.f90
+
+Routines
+ jml_send_string_leader         : add
+ jml_recv_string_leader         : add
+ send_array_to_recv_model_str   : add
+ recv_array_from_send_model_str : add
+
+Detail
+ コンポーネント間で文字列の送受信を行うためのサブルーチン群を追加。
+
+-----------------------------------------------------------------
+
+Version:3.120100
+Date:2016/12/22
+File:jcup_grid_base.f90, jcup_interface.f90
+
+Routines
+ set_pe_num                     : add
+ set_pe_num_base                : add
+ set_global_mapping_table       : mod
+ jcup_set_mapping_table         : mod
+
+Detail
+ グローバルなPE番号の生成部分を格子情報の設定ルーチンからマッピングテーブル入力ルーチンに移動。
+
+-----------------------------------------------------------------
+
+Version:3.130000
+Date:2017/01/08
+File:jcup_grid.f90, jcup_interface.f90
+
+Routines
+ jcup_set_mapping_table_local   : add
+ set_grid_mapping_1d_local      : add
+
+Detail
+ あらかじめ領域分割されたローカルなマッピングテーブルを入力情報とし、内部ではローカルな処理のみ
+ を行うように、インターフェースを追加。
+
+-----------------------------------------------------------------
+
+Version:3.130100
+Date:2017/01/09
+File:jcup_utils.f90, jcup_grid.f90
+
+Routines
+ radix_sort                     : add
+ sort_int_1d                    : mod
+ cal_num_of_my_grid             : mod
+ set_my_local_grid_index        : mod
+ cal_and_set_my_local_grid_index: add
+ set_local_grid_mapping_1d      : mod
+
+Detail
+ local grid indexの計算でビン方を使っていたがメモリ喰いなのでjcup_utilsのソートルーチンをradix sort
+ に変更し、local grid indexの計算で配列のソートを使うようにした。更に、格子数の計算とインデックスの
+ 計算を一つにまとめて、ソーティング計算を１度で済むようにした。
+
+-----------------------------------------------------------------
+
+Version:3.130101
+Date:2017/01/10
+File:jcup_interpolation_interface.f90
+
+Routines
+ set_local_coef_base            : mod
+
+Detail
+ allocateされていない大きさ０の配列に対して送受信しようとして配列がアサインされていないというエラーが
+ 出たため、大きさ０の配列についてはint_bufferをダミーの配列として与えるようにした。
+
+-----------------------------------------------------------------
+
+Version:3.140000
+Date:2017/01/13
+File:jcup_interpolation_interface.f90, jcup_interface.f90
+
+Routines
+ set_local_intpl_array          : add
+ set_coef_local_to_local        : add
+ jcup_set_coef_local_to_local   : add
+
+Detail
+ localな受信側格子係数配列から受信側の補間係数配列を生成するルーチン群を作成。現在はRECV_COEFのみに対応。
+
+-----------------------------------------------------------------
+
+Version:3.140001
+Date:2017/02/02
+File:jcup_grid.f90
+
+Routines
+ cal_and_set_my_local_grid_index : mod
+
+Detail
+ 送信格子数が０のときに大きさ０の配列をallocateするコードを追加。
+
+-----------------------------------------------------------------
+
+Version:3.150000
+Date:2017/02/14
+File:jcup_intercomm.f90, jcup_grid.f90, jcup_interface.f90
+
+Routines
+ jcup_init_advanced_exchange : add
+ exchange_data_comp_new      : add
+ exchange_data_comp          : mod
+ jcup_intercomm.90のルーチン : add
+
+Detail
+ コンポーネント間のデータ通信をlocalなMxN通信ではなく、指定したランク数毎に集約して送受信するようにした。
+ そのためのモジュールをjcup_intercomm.f90に作成し、exchange_data_comp_newはjcup_intercommのルーチンを
+ コールするようにした。advanced_exchangeは-DADVANCED_EXCHANGEで使用される。その際はサブルーチン
+ jcup_init_advanced_exchangeを最初にコールし、データをまとめるランクの数を指定する。
+
+-----------------------------------------------------------------
+
+Version:3.150001
+Date:2017/02/14
+File:jcup_mpi_lib.f90
+
+Routines
+ jml_set_num_of_isend        : mod
+ jml_set_num_of_irecv        : mod
+ jml_isend_double_1d_local   : mod
+ jml_irecv_double_1d_local   : mod
+ jml_isend_double_1d_model   : mod
+ jml_irecv_double_1d_model   : mod
+
+Detail
+ 送受信を行わない場合、isend_requestやirecv_requestのallocatable配列に大きさ０の配列をallocateするようにした。
+ isend, irecvのサブルーチンで配列の大きさをチェックするようにした。
+
+-----------------------------------------------------------------
+
+Version:4.000000
+Date:2017/05/14
+
+時間補間を伴う結合を可能にするためにJcupにプラグインを作成する。このプラグインはJcupの内部モジュールを用いる
+ため、Jcupの各モジュールの独立性を高めプラグインから使用できるようにする必要がある。
+そこでJcup4としてJcupの内部構造を大幅に改良整備した。以下整備の内容について記述する。
+
+・buffer関連
+jcup_buffer.f90をjcup_buffer_base.f90とjcup_buffer.f90に分離した。jcup_buffer_base.f90ではtime_buffer_type
+の型定義と型に対する操作を記述し、インスタンスであるtype(time_buffer_type), pointer :: send_buffer, recv_buffer
+をjcup_buffer.f90で定義するようにした。これによって、Jcupのデータバッファとは別にプラグインでもデータバッファを
+定義・使用できるようになる。
+
+・config関連
+jcup_interface.f90で定義されていたルーチンget_average_data_nameとget_send_data_idをjcup_config.f90に移動した。
+
+-----------------------------------------------------------------
+
+Version:4.000100
+Date:2018/01/26
+
+File:jcup_utils.f90, jcup_time.f90, jcup_buffer_base.f90, jcup_config.f90, jcup_intercomm.f90
+     jcup_exchange.f90, jcup_interface.f90, jcup_mpi_lib.f90
+
+Routines
+  many
+
+Detail
+ ES3のコンパイラに適合するよう修正。具体的には1行の長さを132文字未満にする。
+ 
+-----------------------------------------------------------------
+
+Version:4.010000
+Date:2018/02/07
+
+File:jcup_exchange.f90, jcup_interface.f90
+
+
+Routines
+ send_data_vector            : add
+ recv_data_vector            : add
+ jcup_put_data_1d_double     : mod
+ jcup_put_data_25d_double    : mod
+ jcup_get_data_1d_double     : mod
+ jcup_get_data_25d_double    : mod
+ jcup_put_value              : mod
+ jcup_get_value              : mod
+
+Detail
+ スカラ量送受信機能をベクトル量に変更
+ 
+-----------------------------------------------------------------
+
+Version:4.020000
+Date:2019/05/21
+
+ 非同期データ交換ライブラリJAL(Jcup Asyncrhonous Library)を追加した。このため、ディレクトリ構造を変更。
+ srcディレクトリにjcup_interface.f90を配置し、src/c.blackに従来のJcupファイルを、src/c.whiteにJALファイル
+ を置くようにした。
+ 従来のjcupとjalの動作はjcup_interfaceのサブルーチン内部で切り分けられる。
+ 動作切り分けのため、
+ サブルーチン　jcup_def_varg
+ のインターフェースを変更。オプショナル引数time_intpl_tagを追加し、これが設定されている場合非同期通信
+ を行うようにした。
+
+-----------------------------------------------------------------
+
+Version:4.020100
+Date:2019/05/27
+
+File:jcup_mpi_lib.f90
+
+
+Routines
+ jml_isend_double_1d_model  : mod
+ jml_irecv_double_1d_model  : mod
+
+Detail
+ if (is == ie) return をコメントアウト。
+ 
+-----------------------------------------------------------------
+
+Version:4.030000
+Date:2020/02/06
+
+File:jcup_mpi_lib.f90, jcup_interface.f90
+
+
+Routines
+ jml_set_global_comm        : add
+ jml_get_global_comm        : add
+ jml_init                   : mod
+ jcup_set_world             : add
+ jcup_get_wold              : add
+
+Detail
+ Jcupの動作範囲を限定するためグローバルコミュニケータMPI_COMM_WORLDを廃止し、GLOBAL_COMMを外部から
+ 設定できるようにした。
+
+-----------------------------------------------------------------
+
+Version:4.030100
+Date:2020/03/19
+
+File:jcup_utils.f90, jcup_grid.f90
+
+
+Routines
+ soft_int_1d                : mod
+ binary_search              : add
+ set_local_grid_mapping_1d  : mod
+
+Detail
+ jcup_gridのset_local_grid_mapping_1dでO(n2)のサーチループをbinary searchに変更した。
+
+-----------------------------------------------------------------
+
+Version:4.030101
+Date:2020/04/01
+
+File:jcup_mpi_lib.f90
+
+
+Routines
+ jml_set_num_of_isend       : mod
+ jml_set_num_of_irecv       : mod
+
+Detail
+ set_num_of_isend, irecvで引数に０が渡されたとき、それまでの大きさを上書きするバグを修正。
+
+-----------------------------------------------------------------
+
+Version:4.030102
+Date:2020/04/02
+
+File:jcup_interface.f90
+
+
+Routines
+ jcup_coupling_end          : mod
+
+Detail
+ 直列結合でsend_final_step_dataの前にjal_finishが呼ばれてデッドロックするバグを修正。
+
+-----------------------------------------------------------------
+
+Version:4.040000
+Date:2020/04/09
+
+File:jcup_interface.f90, jcup_exchange.f90
+
+Routines
+ jcup_set_fill_value        : add
+ jcup_interpolate_data_1d   : mod
+ jcup_interpolate_data_25d  : mod
+
+Detail
+ 補間計算時に補間に関わらない格子点にfill_valueを与えるようにした。
+
+-----------------------------------------------------------------
+
+Version:4.040001
+Date:2020/05/14
+
+File:jcup_utils.f90
+
+Routines
+ sort_int_1d                : mod
+ radix_sort                 : mod
+
+Detail
+ num_of_data=0の時にソートルーチンを抜けるよう修正。また桁数が多いときに
+ 桁落ちを防ぐ修正を施した。
+
+-----------------------------------------------------------------
+
+Version:4.050000
+Date:2020/05/14
+
+File:jcup_interpolation_interface.f90
+
+Routines
+ jcup_recv_array            : mod
+
+Detail
+ 受信した後Bcastするかどうかのフラグを追加。
+
+-----------------------------------------------------------------
+
+Version:4.050100
+Date:2020/05/14
+
+File:jcup_grid_base.f90
+
+Routines
+ global_index_to_local_index : mod
+
+Detail
+ if (num_of_point <= 0) returnを追加
+
+-----------------------------------------------------------------
+
+Version:4.050200
+Date:2020/05/19
+
+File:jcup_mpi_lib.f90
+
+Routines
+ check_buffer_size          : mod
+
+Detail
+ mpi_buffer_attachが正しく動作するようlocal_bufferの計算方法を変更。
+
+-----------------------------------------------------------------
+
+Version:4.050300
+Date:2020/05/19
+
+File:jcup_constant.f90他多数
+
+Routines
+ NAME_LEN, STRING_LEN       : STR_SHORT, STR_MID, STR_LONG
+
+Detail
+ 文字列の長さ定数をNAME_LEN, STRING_LENからSTR_SHORT, STR_MID, STR_LONGに変更。
+ 
+-----------------------------------------------------------------
+
+Version:4.050400
+Date:2020/05/19
+
+File:jcup_utils.f90
+
+Routines
+ radix_sort                 : [mod]
+
+Detail
+ radix sortでn桁目の数値を取り出すアルゴリズムを文字列を使うよう変更。
+
+-----------------------------------------------------------------
+
+Version:4.060000
+Date:2020/05/20
+
+Files:jcup_grid_checker.f90 jcup_interface.f90
+
+Routines
+ check_grid_index           : [add]
+ check_mapping_table        : [add]
+ jcup_initialize            : [mod]
+ jcup_def_grid              : [mod]
+ jcup_set_mapping_table     : [mod]
+ jcup_set_date_time_int     : [mod]
+
+Detail
+ 格子点番号の重複チェックとマッピングテーブルのチェックルーチンを作成。
+ jcup_initializeにoptional引数checker_flagとinit_checkerのコールを追加。
+ jcup_def_gridとjcup_set_mapping_tableにチェックルーチンコールを追加。
+ jcup_set_date_time_intにfinalize_checkerのコールを追加。
+
+-----------------------------------------------------------------
+
+Version:4.060001
+Date:2020/05/25
+
+Files:jcup_utils.f90 jcup_interface.f90
+
+Routines
+ put_log_to_file            : [mod]
+ jcup_coupling_end          : [mod]
+
+Detail
+ サイクリックログ出力の文字列長計算に関わるバグを修正。
+ jcup_coupling_endで終了処理のログ出力を追加。
+
+-----------------------------------------------------------------
+
+Version:4.060002
+Date:2020/05/27
+
+Files:jcup_grid_checker.f90
+
+Routines
+ finalize_checker           : [mod]
+ check_grid_index           : [mod]
+ check_mapping_table        : [mod]
+
+Detail
+ if文の記述に関するES3でのコンパイルエラーを修正
+
+-----------------------------------------------------------------
+
+Version:4.060100
+Date:2020/06/02
+
+Files:jcup_utils.f90, jcup_config.f90
+
+Routines
+ set_fid                    : [add]
+ init_log                   : [mod]
+ open_log_file              : [mod]
+ finalize_log               : [mod]
+ put_log_to_file            : [mod]
+ error                      : [mod]
+ set_configuration          : [mod]
+ read_conf_file_2           : [mod]
+
+Detail
+ Jcupのログ出力改良
+ 1.ファイルIDを動的に取得するようにした。
+ 2.サイクリックログの廃止。
+ 3.プロセス番号を4桁から5桁に増やした。
+
+-----------------------------------------------------------------
+
+Version:4.060101
+Date:2020/06/09
+
+Files:jcup_mpi_lib.f90, jal_mpi_lib.f90
+
+Routines
+ include "mpif.h"           : [mod]
+ jal_init_window_leader     : [mod]
+ open_log_file              : [mod]
+ finalize_log               : [mod]
+ put_log_to_file            : [mod]
+ error                      : [mod]
+ set_configuration          : [mod]
+ read_conf_file_2           : [mod]
+
+Detail
+ inlcude "mpif.h"をuse mpiに変更
+ MPI_win_createの引数disp_unitの型をintegerに修正
+
+-----------------------------------------------------------------
+
+Version:4.070000
+Date:2020/06/18
+
+Files:jcup_buffer_base.f90, jcup_buffer.f90, jcup_time.f90
+      jcup_exchange.f90, jcup_interface.f90
+
+Routines
+ dump_data_buffer_type      : [add]
+ restore_data_buffer_type   : [add]
+ dump_time_buffer_type      : [add]
+ restore_time_buffer_type   : [add]
+ dump_buffer_base           : [add]
+ restore_buffer_base        : [add]
+ dump_buffer                : [add]
+ restore_buffer             : [add]
+ dump_time                  : [add]
+ resotore_time              : [add]
+ set_restart_flag           : [add]
+ jcup_exchange_data_1d_double  : [mod]
+ jcup_exchange_data_25d_double : [mod]
+ jcup_write_restart         : [add]
+ jcup_read_restart          : [add]
+
+Detail
+ Jcupにリスタート機能を再作成
+ データバッファと時間情報をダンプして読み込む
+ jcup_exchangeにis_restartフラグを追加しデータ交換時の第一ステップ判定を一部修正
+
+-----------------------------------------------------------------
+
+Version:4.070100
+Date:2020/07/02
+
+Files:jcup_exchange.f90
+
+Routines
+ jcup_exchange_data_1d_double  : [mod]
+ jcup_exchange_data_25d_double : [mod]
+
+Detail
+ 時刻取得判定のif文ロジックが不必要にわかりにくかったので再構成
+
+-----------------------------------------------------------------
+
+Version:4.080000
+Date:2021/02/08
+
+Files:jcup_interface.f90, jcup_grid.f90, jcup_mpi_lib.f90 
+
+Routines
+ jcup_initialize               : [mod]
+ jcup_coupling_end             : [mod]
+ jcup_end_var_def              : [mod]
+ send_data_1d_nowait           : [mod]
+ recv_data                     : [mod]
+ exchange_data_comp            : [mod]
+ 他多数                        : [add]
+
+Detail
+ RMAによるデータ交換を実装。
+ コンパイルオプションEXCHANGE_MY_MPI_RMAを定義するとRMAモードでデータ交換を行う。
+
+-----------------------------------------------------------------
+
+Version:4.080100
+Date:2021/02/08
+
+Files:jcup_grid.f90
+
+Routines
+ set_local_grid_mapping_1d     : [mod]
+
+Detail
+ recv_grid_doとsend_grid_doのループでリニアサーチをバイナリサーチに変更。
+
+-----------------------------------------------------------------
+
+Version:4.080101
+Date:2021/02/09
+
+Files:jcup_grid.f90, jcup_exchange.f90
+
+Routines
+ recv_data_1d                  : [add]
+ jcup_recv_get_data_1d_double  : [mod]
+ jcup_recv_get_data_25d_double : [mod]
+
+Detail
+ immediate send recvのRMAモードで送信側はisend, 受信側はRMAで通信するバグがあったので、
+ 受信側もirecvで受信するよう修正。
+
+-----------------------------------------------------------------
+
+Version:4.080200
+Date:2021/03/06
+
+Files:jcup_interface,f90, jcup_grid.f90
+
+Routines
+ jcup_set_mapping_table        : [mod]
+ send_grid_mapping             : [mod]
+ recv_grid_mapping             : [mod]
+ recv_mapping_info             : [mod]
+ init_send_array               : [mod]
+ finish_grid_mapping           : [mod]
+
+Detail
+ マッピングテーブル設定に関わるログ出力を詳細化
+
+-----------------------------------------------------------------
+
+Version:4.080201
+Date:2021/03/12
+
+Files:jcup_grid.f90
+
+Routines
+ set_grid_mapping_1d           : [mod]
+
+Detail
+ 配列local_operationをdeallocateしていなかったので修正。
+
+-----------------------------------------------------------------
+
+Version:4.080202
+Date:2021/03/12
+
+Files:jcup_grid_base.f90 jcup_grid.f90
+
+Routines
+ destruct_index2pe             : [add]
+ set_grid_mapping_1d           : [mod]
+
+Detail
+ 配列index2peをdeallocateしていなかったので修正。
+
+-----------------------------------------------------------------
+
+Version:4.080300
+Date:2021/03/24
+
+Files:jcup_grid.f90
+
+Routines
+ finish_grid_mapping           : [mod]
+
+Detail
+ リニアサーチをバイナリサーチに変更。
+
+-----------------------------------------------------------------
+
+Version:4.080400
+Date:2021/04/01
+
+Files:jcup_buffer_base.f90, jcup_buffer.f90, jcup_exchange.f90, 
+      jal_buffer.f90, jal_api.f90
+
+Routines
+ 多数                          : [mod]
+
+Detail
+ 欠損値の格子が時間変化する場合対応するためweightを配列にしtotal_weightを追加した。
+ またtotal_weightが0の場合はfill_valueを代入するようにした。
+
+-----------------------------------------------------------------
+
+Version:4.080500
+Date:2021/05/09
+
+Files:jcup_grid.f90, jcup_mpi_lib.f90
+
+Routines
+ finish_grid_mapping           : [mod]
+ jml_init                      : [mod]
+ jml_ISendModel                : [mod]
+ jml_IRecvModel                : [mod]
+
+Detail
+ finish_grid_mappingでisend_request, irecv_requestの配列サイズをnum_of_pe*100からnum_of_pe*100+100に変更。
+ jml_initでisend_request, irecv_requestの配列を明示的に初期化(大きさ100)。
+ jml_ISendModel, jml_IrecvModelのエラーメッセージを修正。
+
+-----------------------------------------------------------------
+
+Version:4.080501
+Date:2021/05/10
+
+Files:jal_exchange.f90
+
+Routines
+ jal_send_data                 : [mod]
+ jal_recv_data                 : [mod]
+ jal_interpolate_time          : [mod]
+
+Detail
+ バッファにデータを保存、バッファからデータを取り出す際、鉛直層数がバッファ配列の大きさになっていたのを
+ データの鉛直層数に修正。
+
+-----------------------------------------------------------------
+
+Version:4.080600
+Date:2021/05/13
+
+Files:jal_api.f90, jcup_interface.f90
+
+Routines
+ jal_set_final_exchange_flag   : [add]
+ jal_finish                    : [mod]
+ jcup_coupling_end             : [mod]
+
+Detail
+ jalの終了処理でデータ送信するかどうかのフラグを設定するルーチンを作成。
+ デフォルトで送信しないようにjcup_coupling_endにルーチンコールを追加。
+ この修正はILS結合に対応するためのad hocな処置である。
+
+-----------------------------------------------------------------
+
+Version:4.080700
+Date:2021/05/24
+
+Files:jcup_zlib.f90, jcup_mpi_lib.f90, jcup_grid.f90
+
+Routines
+ compress_array                : [add]
+ uncompress_array              : [add]
+ jml_ISendModel_compress       : [add]
+ jml_IRecvModel_compress       : [add]
+ exchange_data_comp_compress   : [add]
+
+Detail
+ データ送受信時にデータを圧縮するコードを追加。
+ ただしこのコードはデフォルトでは用いられない。
+ デフォルトで送信しないようにjcup_coupling_endにルーチンコールを追加。
+ この修正はILS結合に対応するためのad hocな処置である。
+
+-----------------------------------------------------------------
+
+Version:4.080701
+Date:2021/05/25
+
+Files:jcup_mpi_lib.f90
+
+Routines
+ jml_ISendModel_compress       : [mod]
+
+Detail
+ 圧縮データサイズに関するエラーを修正。
+
+-----------------------------------------------------------------
+
+Version:4.090000
+Date:2021/06/21
+
+Files:jcup_exchange.f90 jcup_interface.f90
+
+Routines
+ get_fill_value                : [add]
+ jcup_get_fill_value           : [add]
+
+Detail
+ Jcup内部の欠損値を取得する関数を追加。
+
+-----------------------------------------------------------------
+
+Version:4.090100
+Date:2021/07/26
+
+Files:jcup_grid_base.f90 jcup_grid.f90
+
+Routines
+
+Detail
+ jcup_grid.f90で定義されてたモジュールjcup_pe_arrayとjcup_exchange_gridを削除し、
+ 中身をjcup_grid_base.f90に移動。
+
+-----------------------------------------------------------------
+
+Version:4.090200
+Date:2021/10/01
+
+Files:jcup_utils.f90 jcup_config.f90
+
+Routines
+ init_log                      : [mod]
+ set_configuration             : [mod]
+
+Detail
+ ログファイルのファイル名を先頭にjcup.がつくよう変更。
+
+-----------------------------------------------------------------
+
+Version:4.090201
+Date:2021/10/01
+
+Files:jcup_zlib.f90 
+
+Routines
+ compress_array_double         : [mod]
+ uncompress_array_double       : [mod]
+
+Detail
+ 引数の配列を形状引き継ぎ配列から明示配列に変更。

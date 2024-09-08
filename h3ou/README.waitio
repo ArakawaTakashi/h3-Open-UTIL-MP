@@ -1,0 +1,35 @@
+modify Mkinclude  TOPDIR H3OUDIR
+cd jcup/src/c.black
+cp jcup_mpi_lib.waitio.f90 jcup_mpi_lib.f90
+cd ../../
+
+export SYSTEM=odyssey
+module purge
+module load odyssey
+module load waitio
+cd jcup/src
+make clean ; make
+cd ../../
+cd cpl
+make clean ; make
+
+export SYSTEM=aquarius
+module purge
+module load intel
+module load impi
+module load waitio
+module unload intel
+module unload impi
+module load gcc ompi
+cd jcup/src
+make clean ; make
+cd ../../
+cd cpl
+make clean ; make
+
+cd ../../opt/h3ou_waitio/include/odyssey
+modify h3ou.py
+h3oupf = np.ctypeslib.load_library("libh3oup.so","/work/jh210022a/share/h3ou/opt/h3ou_waitio/lib/odyssey")
+cd ../../opt/h3ou_waitio/include/aquarius
+modify h3ou.py
+h3oupf = np.ctypeslib.load_library("libh3oup.so","/work/jh210022a/share/h3ou/opt/h3ou_waitio/lib/aquarius")

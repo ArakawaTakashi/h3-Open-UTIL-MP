@@ -1,0 +1,41 @@
+#
+# Set TOPDIR here or as a environmental variable.
+# 
+TOPDIR = /home/arakawa/work/2024H3OPEN/h3ou2024
+#TOPDIR = /home/c26011/work3/2024TSMP/toysmp
+#TOPDIR = /p/home/jusers/arakawa1/deep/work/2023TSMP/toysmp
+H3OUDIR = $(TOPDIR)/h3ou
+############# 1. System Specification #################################
+### select one of following by un-comment it, or create new one.
+########################################################################
+#SYSTEM         = yumyum-intel
+#SYSTEM         = odyssey
+#SYSTEM               = Oakleaf.cross
+#SYSTEM          = Linux-IFC.mpich
+#SYSTEM          = Linux-IFC.openmpi
+#SYSTEM          = Linux-GNU.openmpi
+
+
+JCUPLIBDIR=$(H3OUDIR)/lib
+JCUPINCDIR=$(H3OUDIR)/include
+H3OPENLIBDIR = $(H3OUDIR)/lib
+H3OPENINCDIR = $(H3OUDIR)/include
+
+#for deeep_waitio
+####WAITIO_INC=/p/home/jusers/sumimoto1/shared/opt/waitio/include
+####WAITIO_LIB=/p/home/jusers/sumimoto1/shared/opt/waitio/lib
+####WAITIO_INC=/work/01/jh210022a/share/waitio/opt/waitio/include
+####WAITIO_LIB=/work/01/jh210022a/share/waitio/opt/waitio/lib
+
+WAITIOINCDIR = $(WAITIO_INC)
+WAITIOLIBDIR = $(WAITIO_LIB)
+
+
+################ Directory Specification ###############
+
+
+######## Other directories
+SRCDIR		= $(H3OUDIR)
+SYSMAKEDIR	= $(SRCDIR)/sysdep
+
+include $(SYSMAKEDIR)/Makedef.$(SYSTEM)

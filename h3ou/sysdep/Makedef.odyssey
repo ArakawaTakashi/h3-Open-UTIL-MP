@@ -1,0 +1,79 @@
+#
+# ------ FOR Linux 64bit & intel fortran&C & intel mpi -----
+#
+
+#FFLAGS_FAST  = -cpp -Kfast -fPIC 
+FFLAGS_FAST  = -fPIC -Kfast,parallel,ocl,preex,array_private,noalias=s \
+               -Nlst=i -Nlst=t -X03 -Ncompdisp -Koptmsg=1 -Cpp   \
+               -Kdynamic_iteration -Ksimd                        \
+               -Kauto,threadsafe -Kloop_fission_threshold=40
+#FFLAGS_FAST  = -cpp -m64 -O3      \
+#               -assume byterecl -convert big_endian \
+#               -mcmodel medium  -shared-intel \
+#               -fPIC
+#FFLAGS_FAST  = -fpp -m64 -O3 -xMIC-AVX512            \
+#               -assume byterecl -convert big_endian \
+#               -fp-model source -align array64byte  \
+#               -qopt-streaming-stores always -fPIC
+
+FFLAGS_DEBUG = -fpp -m64 -O0 -xMIC-AVX512                \
+               -assume byterecl -convert big_endian      \
+               -fpe0 -fp-model source -align array64byte \
+               -qopt-streaming-stores always             \
+               -check bounds -warn all -g -traceback
+
+FC     = mpifrtpx
+F90     = mpifrtpx
+
+FFLAGS = $(FFLAGS_FAST)
+F90FLAGS = $(FFLAGS)
+
+#FFLAGS = $(FFLAGS_DEBUG)
+
+LD     = $(F90)
+LFLAGS = $(FFLAGS_FAST)
+LDFLAGS = $(FFLAGS_FAST)
+#LFLAGS = $(FFLAGS_DEBUG)
+
+CFLAGS_FAST  = -fPIC -Kfast,parallel,ocl,preex,array_private,region_extension,restp=all -Ksimd --linkfortran
+#CFLAGS_FAST  = -O3 -xMIC-AVX512 -fPIC
+CFLAGS_DEBUG = -O0 -xMIC-AVX512 -fPIC
+
+CC     = mpifccpx
+CFLAGS = $(CFLAGS_FAST)
+#CFLAGS = $(CFLAGS_DEBUG)
+
+##### Special Options #####
+
+ifeq ($(ENABLE_COUPLE),T)
+	FFLAGS += -I$(JCUPINCDIR)
+        LFLAGS += -L$(JCUPLIBDIR) -lh3openmp
+endif
+
+ifeq ($(ENABLE_OPENMP),T)
+	FFLAGS += -qopenmp
+	LFLAGS += -qopenmp
+endif
+
+
+ENABLE_WAITIO=T
+
+ifeq ($(ENABLE_WAITIO),T)
+#	WAITIO_INCLUDE = -I$(WAITIOINCDIR)
+	WAITIO_LIBS    = -lwaitio_a64fx
+	FFLAGS += $(WAITIO_INCLUDE)
+	LFLAGS += $(WAITIO_INCLUDE)
+	LDFLAGS += $(WAITIO_LIBS)
+endif
+	
+###########################
+
+MODDIROPT ?= -module $(BUILDDIR)
+OBJDIR    ?= $(BUILDDIR)
+
+MAKE    = make
+INSTALL = install
+AR      = ar
+ARFLAGS = r
+RANLIB  = ranlib
+JOBSUB  = pjsub

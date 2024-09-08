@@ -1,0 +1,19 @@
+modify Mkinclude  TOPDIR H3OUDIR
+cd jcup/src/c.black
+cp jcup_mpi_lib.org.f90 jcup_mpi_lib.f90
+cd ../../
+
+export SYSTEM=odyssey
+module purge
+module load odyssey
+module load waitio
+cd jcup/src
+make clean ; make
+cd ../../
+cd cpl
+make clean ; make
+
+cd ../../opt/h3ou/include/odyssey
+modify h3ou.py
+h3oupf = np.ctypeslib.load_library("libh3oup.so","/work/jh210022a/share/h3ou/opt/h3ou/lib/odyssey")
+

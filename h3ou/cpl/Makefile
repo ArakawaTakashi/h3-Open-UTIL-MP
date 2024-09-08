@@ -1,0 +1,63 @@
+TOPDIR = ../
+include ${TOPDIR}/Mkinclude
+
+LIBJCUP   = libjcup4.a
+LIBH3OPEN = libh3ou.a
+LIBH3OPENP = libh3openp.a
+LIBH3OPENSO = libh3oup.so
+LIBH3OPENC  = libh3ouc.a
+
+include files.mk
+
+
+MODS = $(H3OPENOBJS:.o=.mod)
+
+all:
+	$(MAKE) $(H3OPENOBJS)
+	$(MAKE) $(H3OPENCOBJS)
+	$(MAKE) $(H3OPENLIBDIR)/$(LIBH3OPEN)
+	$(MAKE) $(H3OPENLIBDIR)/$(LIBH3OPENC)
+	$(MAKE) $(H3OPENLIBDIR)/$(LIBH3OPENP)
+	$(MAKE) $(H3OPENLIBDIR)/$(LIBH3OPENSO)
+	$(MAKE) modules
+	@echo "Complete making $(LIBH3OPEN)."
+
+$(H3OPENLIBDIR)/$(LIBH3OPEN): $(H3OPENOBJS)
+	$(AR) $(ARFLAGS) $@ $(H3OPENOBJS)
+	$(RANLIB) $@
+
+$(H3OPENLIBDIR)/$(LIBH3OPENC): $(H3OPENCOBJS)
+	$(AR) $(ARFLAGS) $@ $(H3OPENCOBJS)
+	$(RANLIB) $@
+
+$(H3OPENLIBDIR)/$(LIBH3OPENP): $(H3OPENSOOBJS)
+	$(AR) $(ARFLAGS) $@ $(H3OPENOBJS) $(H3OPENSOOBJS) 
+
+$(H3OPENLIBDIR)/$(LIBH3OPENSO): $(H3OPENSOOBJS)
+	$(FC) -shared -o $@ $(H3OPENOBJS) $(H3OPENSOOBJS) $(H3OPENLIBDIR)/$(LIBH3OPEN) $(JCUPLIBDIR)/$(LIBJCUP) $(WAITIO_LIBS)
+
+modules: $(H3OPENOBJS)
+	$(INSTALL) $(MODS) $(H3OPENINCDIR)
+	$(INSTALL) $(H3OPENPY) $(H3OPENINCDIR) 
+	$(INSTALL) h3ouc.h  $(H3OPENINCDIR)
+
+allclean: clean
+	$(RM) -f $(LIBDIR)/$(LIBH3OPEN)
+
+clean:
+	$(RM) -f *.o *.mod *.lst *.L
+
+
+
+.SUFFIXES:
+.SUFFIXES: .o .f90 .mod .c
+
+.f90.o:
+	$(FC) $(FFLAGS) -c $< -I$(JCUPINCDIR)
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -I$(JCUPINCDIR)
+
+k%.mod: %.f90
+	make $(patsubst %.f90,%.o,$<)
+
