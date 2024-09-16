@@ -93,6 +93,8 @@ integer :: num_of_config = 0
 
 type(type_moj_configure), pointer :: config(:)
 
+
+
 contains
 
 !=======+=========+=========+=========+=========+=========+=========+=========+

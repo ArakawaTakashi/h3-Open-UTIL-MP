@@ -81,3 +81,31 @@ void h3oup_recv_int_array(char * source_name, int * name_len, int * val, int * a
 void h3oup_recv_real_array(char * source_name, int * name_len, float * val, int * array_size) ; 
 
 void h3oup_recv_double_array(char * source_name, int * name_len, double * val, int * array_size) ; 
+
+void h3oup_isend_model_int(char * target_name, int * name_len, int * target_pe, int * data, int * array_size) ;
+
+void h3oup_isend_model_real(char * target_name, int * name_len, int * target_pe, float * data, int * array_size) ;
+
+void h3oup_isend_model_double(char * target_name, int * name_len, int * target_pe, double * data, int * array_size) ;
+
+void h3oup_irecv_model_int(char * source_name, int * name_len, int * source_pe, int * data, int * array_size) ; 
+
+void h3oup_irecv_model_real(char * source_name, int * name_len, int * source_pe, float * data, int * array_size) ; 
+
+void h3oup_irecv_model_double(char * source_name, int * name_len, int * source_pe, double * data, int * array_size) ; 
+
+void h3oup_isend_waitall(void) ;
+
+void h3oup_irecv_waitall(void) ;
+
+void h3oup_send_model_int(char * target_name, int * name_len, int * target_pe, int * data, int * array_size) ;
+
+void h3oup_send_model_real(char * target_name, int * name_len, int * target_pe, float * data, int * array_size) ;
+
+void h3oup_send_model_double(char * target_name, int * name_len, int * target_pe, double * data, int * array_size) ;
+
+void h3oup_recv_model_int(char * source_name, int * name_len, int * source_pe, int * data, int * array_size) ; 
+
+void h3oup_recv_model_real(char * source_name, int * name_len, int * source_pe, float * data, int * array_size) ; 
+
+void h3oup_recv_model_double(char * source_name, int * name_len, int * source_pe, double * data, int * array_size) ; 

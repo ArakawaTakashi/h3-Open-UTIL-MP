@@ -74,3 +74,32 @@ void h3ouc_recv_int_array(char * source_name, int * data, int array_size) ;
 void h3ouc_recv_float_array(char * source_name, float * data, int array_sizs) ; 
 
 void h3ouc_recv_double_array(char * source_name, double * data, int array_size) ; 
+
+void h3ouc_isend_model_int(char * target_name, int target_pe, int * data, int array_size) ;
+
+void h3ouc_isend_model_float(char * target_name, int target_pe, float * data, int array_size) ;
+
+void h3ouc_isend_model_double(char * target_name, int target_pe, double * data, int array_size) ;
+
+void h3ouc_irecv_model_int(char * source_name, int source_pe, int * data, int array_size) ;
+
+void h3ouc_irecv_model_float(char * source_name, int source_pe, float * data, int array_size) ;
+
+void h3ouc_irecv_model_double(char * source_name, int source_pe, double * data, int array_size) ;
+
+void h3ouc_isend_waitall(void) ;
+
+void h3ouc_irecv_waitall(void) ; 
+
+void h3ouc_send_model_int(char * target_name, int target_pe, int * data, int array_size) ;
+
+void h3ouc_send_model_float(char * target_name, int target_pe, float * data, int array_size) ;
+
+void h3ouc_send_model_double(char * target_name, int target_pe, double * data, int array_size) ;
+
+void h3ouc_recv_model_int(char * source_name, int source_pe, int * data, int array_size) ;
+
+void h3ouc_recv_model_float(char * source_name, int source_pe, float * data, int array_size) ;
+
+void h3ouc_recv_model_double(char * source_name, int source_pe, double * data, int array_size) ;
+

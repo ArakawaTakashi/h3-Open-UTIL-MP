@@ -182,13 +182,13 @@ module jcup_mpi_lib
 
   interface jml_SendLocal
     module procedure jml_send_int_1d_local, jml_send_int_2d_local, jml_send_int_3d_local
-    module procedure jml_send_real_2d_local, jml_send_real_3d_local
+    module procedure jml_send_real_1d_local, jml_send_real_2d_local, jml_send_real_3d_local
     module procedure jml_send_double_1d_local, jml_send_double_2d_local, jml_send_double_3d_local
   end interface
 
   interface jml_RecvLocal
     module procedure jml_recv_int_1d_local, jml_recv_int_2d_local, jml_recv_int_3d_local
-    module procedure jml_recv_real_2d_local, jml_recv_real_3d_local
+    module procedure jml_recv_real_1d_local, jml_recv_real_2d_local, jml_recv_real_3d_local
     module procedure jml_recv_double_1d_local, jml_recv_double_2d_local, jml_recv_double_3d_local
   end interface
 
@@ -217,16 +217,17 @@ module jcup_mpi_lib
 
 
   interface jml_SendModel
-    module procedure jml_send_int_1d_model , jml_send_double_1d_model
+    module procedure jml_send_int_1d_model , jml_send_real_1d_model, jml_send_double_1d_model
     module procedure jml_send_real_2d_model, jml_send_double_2d_model
     module procedure jml_send_real_3d_model, jml_send_double_3d_model
   end interface
 
   interface jml_RecvModel
-    module procedure jml_recv_int_1d_model , jml_recv_double_1d_model
+    module procedure jml_recv_int_1d_model , jml_recv_real_1d_model, jml_recv_double_1d_model
     module procedure jml_recv_real_2d_model, jml_recv_double_2d_model
     module procedure jml_recv_real_3d_model, jml_recv_double_3d_model
-  end interface
+  end interface jml_RecvModel
+ 
   interface jml_ISendLocal
     module procedure jml_isend_double_1d_local
   end interface
@@ -237,11 +238,13 @@ module jcup_mpi_lib
 
   interface jml_ISendModel
     module procedure jml_isend_double_1d_model
+    module procedure jml_isend_real_1d_model
     module procedure jml_isend_int_1d_model
   end interface
 
   interface jml_IRecvModel
     module procedure jml_irecv_double_1d_model
+    module procedure jml_irecv_real_1d_model
     module procedure jml_irecv_int_1d_model
   end interface
 
@@ -1582,6 +1585,46 @@ end subroutine jml_recv_int_3d_local
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
+subroutine jml_send_real_1d_local(comp, data,is,ie,dest_pe)
+  implicit none
+  integer, intent(IN) :: comp
+  real(kind=4), intent(IN)    :: data(:)
+  integer, intent(IN) :: is, ie
+  integer, intent(IN) :: dest_pe
+
+  real(kind=4) :: buffer(is:ie)
+  integer :: request
+  integer :: status(MPI_STATUS_SIZE)
+
+  buffer(is:ie) = data(is:ie)
+
+  call MPI_ISEND(buffer,(ie-is+1),MPI_REAL,dest_pe,MPI_MY_TAG,local(comp)%mpi_comm,request,ierror)
+  call MPI_WAIT(request,status,ierror)
+
+end subroutine jml_send_real_1d_local
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine jml_recv_real_1d_local(comp, data,is,ie,source_pe)
+  implicit none
+  integer, intent(IN) :: comp
+  real(kind=4), intent(INOUT) :: data(:)
+  integer, intent(IN) :: is, ie
+  integer, intent(IN) :: source_pe
+
+  real(kind=4) :: buffer(is:ie)
+  integer :: request
+  integer :: status(MPI_STATUS_SIZE)
+
+  call MPI_IRECV(buffer,(ie-is+1),MPI_REAL,source_pe,MPI_MY_TAG,local(comp)%mpi_comm,request,ierror)
+  call MPI_WAIT(request,status,ierror)
+
+  data(is:ie) = buffer(is:ie)
+
+end subroutine jml_recv_real_1d_local
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
 subroutine jml_send_real_2d_local(comp, data,is,ie,js,je,dest_pe)
   implicit none
   integer, intent(IN) :: comp
@@ -2516,6 +2559,36 @@ end subroutine jml_send_int_1d_model
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
+subroutine jml_send_real_1d_model(comp,data,is,ie,dest_model,dest_pe)
+  implicit none
+  integer, intent(IN) :: comp
+  real(kind=4), intent(IN) :: data(:)
+  integer, intent(IN) :: is, ie
+  integer, intent(IN) :: dest_model, dest_pe
+
+  real(kind=4) :: buffer(is:ie)
+  integer :: request
+  integer :: status(MPI_STATUS_SIZE)
+  integer :: dest_rank
+  integer :: data_size
+
+  buffer(is:ie) = data(is:ie)
+
+  dest_rank = dest_pe + local(comp)%inter_comm(dest_model)%pe_offset
+  data_size = (ie-is+1)
+
+  if (dest_rank == local(comp)%my_rank) then
+    call check_buffer_size(data_size)
+    call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
+  else
+    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
+    call MPI_WAIT(request,status,ierror)
+  end if
+
+end subroutine jml_send_real_1d_model
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
 subroutine jml_send_real_2d_model(comp,data,is,ie,js,je,dest_model,dest_pe)
   implicit none
   integer, intent(IN) :: comp
@@ -2688,6 +2761,30 @@ subroutine jml_recv_int_1d_model(comp,data,is,ie,source_model,source_pe)
   data(is:ie) = buffer(is:ie)
 
 end subroutine jml_recv_int_1d_model
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine jml_recv_real_1d_model(comp,data,is,ie,source_model,source_pe)
+  implicit none
+  integer, intent(IN) :: comp
+  real(kind=4), intent(INOUT) :: data(:)
+  integer, intent(IN) :: is, ie
+  integer, intent(IN) :: source_model, source_pe
+
+  real(kind=4) :: buffer(is:ie)
+  integer :: request
+  integer :: status(MPI_STATUS_SIZE)
+  integer :: source_rank
+
+  source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
+
+  call MPI_IRECV(buffer,(ie-is+1),MPI_REAL,source_rank,0, &
+                 local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
+  call MPI_WAIT(request,status,ierror)
+
+  data(is:ie) = buffer(is:ie)
+
+end subroutine jml_recv_real_1d_model
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
@@ -3032,6 +3129,51 @@ end subroutine jml_isend_double_1d_model
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
+subroutine jml_isend_real_1d_model(comp, data,is,ie,dest_model,dest_pe, exchange_tag)
+  implicit none
+  integer, intent(IN) :: comp
+  real(kind=4), pointer :: data
+  integer, intent(IN) :: is, ie
+  integer, intent(IN) :: dest_model, dest_pe
+  integer, optional, intent(IN) :: exchange_tag
+  integer :: dest_rank
+  integer :: tag
+  integer :: data_size
+  integer :: i
+
+  !!!!!!if (is == ie) return ! 2017/02/15  ! 2019/05/27 comment out
+
+  if (present(exchange_tag)) then
+    tag = exchange_tag
+  else 
+    tag = 0
+  end if
+
+  dest_rank = dest_pe + local(comp)%inter_comm(dest_model)%pe_offset
+  data_size = ie-is+1
+
+  if (dest_rank == jml_GetMyrankModel(comp, dest_model)) then !local(comp)%my_rank) then
+    !write(0,*) "mpi_IBsend called ", comp, dest_model, dest_pe, exchange_tag
+    call check_buffer_size(data_size)
+    call MPI_BSEND(data,data_size,MPI_FLOAT,dest_rank,tag,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
+  else
+    isend_counter = isend_counter + 1
+
+    if (size(isend_request) < isend_counter) then
+      write(0, '(A,I7,A,I7)') "ERROR!!! jml_isend_double_1d_model, isend_counter = ", isend_counter, &
+                              " > size(isend_request) = ", size(isend_request)
+      call MPI_abort(MPI_COMM_WORLD, tag, ierror)
+      stop 9999
+    end if
+
+    call MPI_ISEND(data,data_size,MPI_FLOAT,dest_rank,tag, &
+                   local(comp)%inter_comm(dest_model)%mpi_comm, isend_request(isend_counter),ierror)
+  end if
+
+end subroutine jml_isend_real_1d_model
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
 subroutine jml_isend_int_1d_model(comp, data,is,ie,dest_model,dest_pe, exchange_tag)
   implicit none
   integer, intent(IN) :: comp
@@ -3113,6 +3255,45 @@ subroutine jml_irecv_double_1d_model(comp, data,is,ie,source_model,source_pe, ex
 
 
 end subroutine jml_irecv_double_1d_model
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine jml_irecv_real_1d_model(comp, data,is,ie,source_model,source_pe, exchange_tag)
+  implicit none
+  integer, intent(IN) :: comp
+  real(kind=4), pointer :: data
+  integer, intent(IN) :: is, ie
+  integer, intent(IN) :: source_model, source_pe
+  integer, optional, intent(IN) :: exchange_tag
+  integer :: source_rank
+  integer :: tag
+  integer :: request
+  integer :: status(MPI_STATUS_SIZE)
+  
+  !!!!!!!if (is == ie) return ! 2017/02/15 ! 2019/05/27 comment out
+
+  if (present(exchange_tag)) then
+    tag = exchange_tag
+  else
+    tag = 0
+  end if
+
+  irecv_counter = irecv_counter + 1
+
+  source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
+
+    if (size(irecv_request) < irecv_counter) then
+      write(0, '(A,I7,A,I7)') "ERROR!!! jml_irecv_double_1d_model, irecv_counter = ", irecv_counter, &
+                              " > size(irecv_request) = ", size(irecv_request)
+      call MPI_abort(MPI_COMM_WORLD, tag, ierror)
+      stop 9999
+    end if
+
+  call MPI_IRECV(data,ie-is+1,MPI_FLOAT,source_rank,tag, &
+                 local(comp)%inter_comm(source_model)%mpi_comm, irecv_request(irecv_counter),ierror)
+
+
+end subroutine jml_irecv_real_1d_model
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 

@@ -38,6 +38,8 @@ module h3ou_api
   public :: h3ou_is_coupled                ! logical function()
   public :: h3ou_get_couple_id             ! integer function ()
   public :: h3ou_get_mpi_parameter         ! subroutine (comp_name, comm, group, size, rank)
+  public :: h3ou_get_my_rank               ! integer function ()
+  public :: h3ou_get_my_size               ! integer function ()
   public :: h3ou_is_local_leader           ! logical function ()
   public :: h3ou_def_grid                  ! subroutine (grid_index, comp_name, grid_name, nz)
   public :: h3ou_end_grid_def              ! subroutine ()
@@ -81,10 +83,38 @@ module h3ou_api
   public :: h3ou_coupling_end              ! subroutine ()
   public :: h3ou_interpolation
 
-  public :: h3ou_init_simple               ! subroutine (comp_name)
+  !---------------------------------------------------------------------------
   public :: h3ou_send                      ! subroutine (target_comp, val)
   public :: h3ou_recv                      ! subroutine (source_comp, val)
   public :: h3ou_end                       ! subroutine ()
+  public :: h3ou_isend_model_int           ! subroutine (target_name, target_pe, data)
+  public :: h3ou_isend_model_real          ! subroutine (target_name, target_pe, data)
+  public :: h3ou_isend_model_double        ! subroutine (target_name, target_pe, data)
+  public :: h3ou_irecv_model_int           ! subroutine (source_name, source_pe, data)
+  public :: h3ou_irecv_model_real          ! subroutine (source_name, source_pe, data)
+  public :: h3ou_irecv_model_double        ! subroutine (source_name, source_pe, data)
+  public :: h3ou_isend_waitall             ! subroutine ()
+  public :: h3ou_irecv_waitall             ! subroutine ()
+  public :: h3ou_send_model_int            ! subroutine (target_name, target_pe, data)
+  public :: h3ou_send_model_real           ! subroutine (target_name, target_pe, data)
+  public :: h3ou_send_model_double         ! subroutine (target_name, target_pe, data)
+  public :: h3ou_recv_model_int            ! subroutine (source_name, source_pe, data)
+  public :: h3ou_recv_model_real           ! subroutine (source_name, source_pe, data)
+  public :: h3ou_recv_model_double         ! subroutine (source_name, source_pe, data)
+  public :: h3ou_send_model                ! subroutine (source_name, source_pe, data)
+  public :: h3ou_recv_model                ! subroutine (source_name, source_pe, data)
+  public :: h3ou_bcast_local_int           ! subroutine (source_pe, data)
+  public :: h3ou_bcast_local_real          ! subroutine (source_pe, data)
+  public :: h3ou_bcast_local_double        ! subroutine (source_pe, data)
+  public :: h3ou_bcast_local               ! subroutine (source_pe, data)
+  public :: h3ou_send_local_int            ! subroutine (target_pe, data)
+  public :: h3ou_send_local_real           ! subroutine (target_pe, data)
+  public :: h3ou_send_local_double         ! subroutine (target_pe, data)
+  public :: h3ou_recv_local_int            ! subroutine (source_pe, data)
+  public :: h3ou_recv_local_real           ! subroutine (source_pe, data)
+  public :: h3ou_recv_local_double         ! subroutine (source_pe, data)
+  public :: h3ou_send_local_all            ! subroutine (target_pe, data)
+  public :: h3ou_recv_local_all            ! subroutine (target_pe, data)
   
 !--------------------------------   private  ---------------------------------!
   
@@ -137,6 +167,36 @@ module h3ou_api
      module procedure h3ou_recv_array_real
      module procedure h3ou_recv_array_dbl
   end interface h3ou_recv
+
+  interface h3ou_send_model
+     module procedure h3ou_send_model_int
+     module procedure h3ou_send_model_real
+     module procedure h3ou_send_model_double
+  end interface h3ou_send_model
+  
+  interface h3ou_recv_model
+     module procedure h3ou_recv_model_int
+     module procedure h3ou_recv_model_real
+     module procedure h3ou_recv_model_double
+  end interface h3ou_recv_model
+
+  interface h3ou_bcast_local
+     module procedure h3ou_bcast_local_int
+     module procedure h3ou_bcast_local_real
+     module procedure h3ou_bcast_local_double
+  end interface h3ou_bcast_local
+
+  interface h3ou_send_local_all
+     module procedure h3ou_send_local_int
+     module procedure h3ou_send_local_real
+     module procedure h3ou_send_local_double
+  end interface h3ou_send_local_all
+  
+  interface h3ou_recv_local_all
+     module procedure h3ou_recv_local_int
+     module procedure h3ou_recv_local_real
+     module procedure h3ou_recv_local_double
+  end interface h3ou_recv_local_all
   
      
   character(len=STR_LONG) :: log_str
@@ -148,6 +208,11 @@ module h3ou_api
   logical :: is_coupled
 
   character(len=STR_SHORT) :: my_name ! my component name 
+  integer                  :: my_id   ! id of my component
+
+  integer :: local_comm, local_group, local_size, local_rank
+  
+  logical :: is_full_coupling = .true. ! full coupling mode or simple exchange mode
 
 contains
 
@@ -157,7 +222,7 @@ contains
 !> @param[in] component_name name of component
 subroutine h3ou_init(comp_name, config_file_name, nensemble)
   use mod_utils, only : open_log_file, put_log, close_log_file
-  use mod_namelist, only : read_coupler_config, get_log_level, is_debug_mode, read_namelist, get_stop_step
+  use mod_namelist, only : read_coupler_config, get_log_level, is_debug_mode, read_namelist, get_num_of_configuration, get_stop_step
   use mod_comp, only : init_comp
   use mod_ensemble_base, only : NO_ENSEMBLE, &
                                 eb_init, eb_end_init, get_ensemble_type, get_coupling_flag, get_couple_id, &
@@ -165,7 +230,7 @@ subroutine h3ou_init(comp_name, config_file_name, nensemble)
   use mod_one_to_one, only : set_one_to_one_ensemble
   use mod_many_to_one, only : set_many_to_one_ensemble
   use h3ou_intpl, only : init_interpolation
-  use jcup_interface, only : jcup_set_new_comp, jcup_initialize, jcup_log
+  use jcup_interface, only : jcup_set_new_comp, jcup_initialize, jcup_log, jcup_get_model_id
   use palmtime, only : palm_TimeInit
   implicit none
   character(len=*), intent(IN) :: comp_name
@@ -178,8 +243,6 @@ subroutine h3ou_init(comp_name, config_file_name, nensemble)
   integer :: glocal_id
   integer :: i
   character(len=STR_LONG) :: log_str
-  integer :: local_comm, local_group, local_size, local_rank
-
 
   if (present(nensemble)) then
      num_of_ensemble = nensemble
@@ -243,10 +306,20 @@ subroutine h3ou_init(comp_name, config_file_name, nensemble)
   end if
  
   call read_namelist(comp_name)
+
+  if (get_num_of_configuration() == 0) then
+     is_full_coupling = .false.
+     call put_log(" coupling mode : simple exchange mode")
+  else
+     is_full_coupling = .true.
+     call put_log(" coupling mode : full coupling mode")
+  end if
   
   call init_comp(get_my_name())
+
+  call jcup_get_model_id(trim(my_name), my_id)
   
-  call init_interpolation()
+  if (is_full_coupling) call init_interpolation()
 
   call put_log("<<<<<<<<<<<<<<< h3ou_init OUT")
 
@@ -275,16 +348,21 @@ subroutine h3ou_coupling_end(itime, is_call_finalize)
 
   call put_log(">>>>>>>>>>>>>>> h3ou_coupling_end IN")
   call palm_TimeFinalize()  ! not output TM* files
-  
-  if (is_coupled) then
-    call jcup_coupling_end(itime, is_call_finalize)
-  else
-    if (is_call_finalize) then
-       call jcup_log("h3ou_coupling_end", "ensemble coupling finish")
-       call mpi_finalize(ierr)
-    end if
-  end if
 
+  if (is_full_coupling) then
+    if (is_coupled) then
+      call jcup_coupling_end(itime, is_call_finalize)
+    else
+       if (present(is_call_finalize)) then
+          if (is_call_finalize) then
+             call jcup_log("h3ou_coupling_end", "ensemble coupling finish")
+             call mpi_finalize(ierr)
+          end if
+      end if
+    end if
+  else
+     call mpi_finalize(ierr)
+  end if
   call put_log("<<<<<<<<<<<<<<< h3ou_coupling_end OUT")
 
   call close_log_file()
@@ -313,6 +391,23 @@ subroutine h3ou_get_mpi_parameter(comp_name, comm, group, size, rank)
 
 end subroutine h3ou_get_mpi_parameter
 
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+integer function h3ou_get_my_rank()
+  implicit none
+
+  h3ou_get_my_rank = local_rank
+
+end function h3ou_get_my_rank
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+integer function h3ou_get_my_size()
+  implicit none
+
+  h3ou_get_my_size = local_size
+
+end function h3ou_get_my_size
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
@@ -1534,113 +1629,6 @@ end subroutine h3ou_recv_array_dbl_2
 !=======+=========+=========+=========+=========+=========+=========+=========+
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
-subroutine h3ou_init_simple(comp_name, log_level, stop_step, debug_mode, grid_checker)
-  use mod_utils, only : open_log_file, put_log, close_log_file
-  use mod_namelist, only : set_coupler_config, get_log_level, is_debug_mode, read_namelist, get_stop_step
-  use mod_comp, only : init_comp
-  use mod_ensemble_base, only : NO_ENSEMBLE, &
-                                eb_init, eb_end_init, get_ensemble_type, get_coupling_flag, get_couple_id, &
-                                get_my_name, get_target_name, get_local_mpi_rank, get_local_mpi_param
-  use mod_one_to_one, only : set_one_to_one_ensemble
-  use mod_many_to_one, only : set_many_to_one_ensemble
-  use h3ou_intpl, only : init_interpolation
-  use jcup_interface, only : jcup_set_new_comp, jcup_initialize, jcup_log
-  use palmtime, only : palm_TimeInit
-  implicit none
-  character(len=*), intent(IN)  :: comp_name
-  character(len=*), intent(IN)  :: log_level
-  integer, optional, intent(IN) :: stop_step
-  logical, optional, intent(IN) :: debug_mode
-  logical, optional, intent(IN) :: grid_checker
-  character(len=NAME_LEN) :: e_comp_name ! ensemble component name
-  integer :: num_of_ensemble
-  logical :: init_flag
-  integer :: start_rank, next_rank
-  integer :: glocal_id
-  integer :: i
-  character(len=STR_LONG) :: log_str
-  integer :: local_comm, local_group, local_size, local_rank
-
-  ! simple mode dose not support ensemble coupling
-  num_of_ensemble = 1
-
-  call eb_init(comp_name, num_of_ensemble)
-  
-  is_coupled = .true.
-
-  select case(get_ensemble_type())
-    case (NO_ENSEMBLE, ONE_TO_ONE)
-      call set_one_to_one_ensemble(comp_name, num_of_ensemble)
-    case (MANY_TO_ONE)
-      call set_many_to_one_ensemble(comp_name, num_of_ensemble)
-  end select
-
-  is_coupled = get_coupling_flag()
-
-  call set_coupler_config(log_level, stop_step, debug_mode, grid_checker)
-
-  call eb_end_init(is_debug_mode())
-
-  call get_local_mpi_param(local_comm, local_group, local_size, local_rank)
-
-  call palm_TimeInit(trim(comp_name), local_comm)
-  
-  my_name = trim(get_my_name())
-  
-  call open_log_file("h3ou."//trim(get_my_name()), get_local_mpi_rank(), get_log_level())
-
-  if (present(stop_step)) then
-    if (stop_step == 1) then
-      call put_log("[stop_step = 1], h3ou_init:IN   OK")
-      call close_log_file()
-      call mpi_finalize(ierror)
-      write(0, *) "11111 --- Coupler stopped at the beginning of h3ou_init --- 11111"
-      stop
-    end if
- end if
- 
-  call put_log("=============================================================================")
-  call put_log("===============       h3-Open-UTIL/MP coupling log       ====================")
-  call put_log("=============================================================================")
-  call put_log(">>>>>>>>>>>>>>> h3ou_init IN")
-
-  if (get_ensemble_type() /= NO_ENSEMBLE) then
-
-    call put_log("--------------- ensemble information")
-    write(log_str, '("Ensemble coupling : my name = ", A10, ", target name = ", A10)') trim(get_my_name()), trim(get_target_name())
-
-    call put_log(trim(log_str))
-    call jcup_log("h3ou_init", trim(log_str), 2)
-
-    write(log_str, '("ensemble type = ", I1, ", coupling flag = ", L)') get_ensemble_type(), get_coupling_flag()
- 
-    call put_log(trim(log_str))
-    call jcup_log("h3ou_init", trim(log_str), 2)
-  end if
- 
-  !!call read_namelist(comp_name)
-  
-  call init_comp(get_my_name())
-  
-  !!call init_interpolation()
-
-  call put_log("<<<<<<<<<<<<<<< h3ou_init OUT")
-
-  if (present(stop_step)) then
-    if (stop_step == 2) then
-      call put_log("[stop_step = 2], h3ou_init:OUT  OK. Breakpoint check run completed.")
-      call close_log_file() 
-      call mpi_finalize(ierror)
-      write(0, *) "22222 --- Coupler stopped at the end of h3ou_init --- 22222"
-      stop 
-    end if
- end if
- 
- return
-
-end subroutine h3ou_init_simple
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
 
 subroutine h3ou_end()
   implicit none
@@ -1735,6 +1723,391 @@ subroutine h3ou_recv_double_scalar(source_name, val)
   
 end subroutine h3ou_recv_double_scalar
 
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_isend_model_int(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  integer, target, intent(IN)  :: data(:)
+  integer :: target_id
+  integer, pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  
+end subroutine h3ou_isend_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_isend_model_real(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  real(kind=4), target, intent(IN)  :: data(:)
+  integer :: target_id
+  real(kind=4), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  
+end subroutine h3ou_isend_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_isend_model_double(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  real(kind=8), target, intent(IN)  :: data(:)
+  integer :: target_id
+  real(kind=8), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  
+end subroutine h3ou_isend_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_irecv_model_int(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)   :: source_name
+  integer, intent(IN)            :: source_pe
+  integer, target, intent(INOUT) :: data(:)
+  integer :: source_id
+  integer, pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  
+end subroutine h3ou_irecv_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_irecv_model_real(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)          :: source_name
+  integer, intent(IN)                  :: source_pe
+  real(kind=4), target, intent(INOUt)  :: data(:)
+  integer :: source_id
+  real(kind=4), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  
+end subroutine h3ou_irecv_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_irecv_model_double(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)          :: source_name
+  integer, intent(IN)                  :: source_pe
+  real(kind=8), target, intent(INOUt)  :: data(:)
+  integer :: source_id
+  real(kind=8), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  
+end subroutine h3ou_irecv_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_isend_waitall()
+  use jcup_mpi_lib, only : jml_send_waitall
+  implicit none
+  
+  call jml_send_waitall()
+
+end subroutine h3ou_isend_waitall
+
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_irecv_waitall()
+  use jcup_mpi_lib, only : jml_recv_waitall
+  implicit none
+  
+  call jml_recv_waitall()
+
+end subroutine h3ou_irecv_waitall
+
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_model_int(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  integer, target, intent(IN)  :: data(:)
+  integer :: target_id
+  integer, pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  call jml_send_waitall()
+  
+end subroutine h3ou_send_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_model_real(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  real(kind=4), target, intent(IN)  :: data(:)
+  integer :: target_id
+  real(kind=4), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  call jml_send_waitall()
+  
+end subroutine h3ou_send_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_model_double(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  real(kind=8), target, intent(IN)  :: data(:)
+  integer :: target_id
+  real(kind=8), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  call jml_send_waitall()
+  
+end subroutine h3ou_send_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_model_int(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)   :: source_name
+  integer, intent(IN)            :: source_pe
+  integer, target, intent(INOUT) :: data(:)
+  integer :: source_id
+  integer, pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  call jml_recv_waitall()
+  
+end subroutine h3ou_recv_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_model_real(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)          :: source_name
+  integer, intent(IN)                  :: source_pe
+  real(kind=4), target, intent(INOUt)  :: data(:)
+  integer :: source_id
+  real(kind=4), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  call jml_recv_waitall()
+  
+end subroutine h3ou_recv_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_model_double(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)          :: source_name
+  integer, intent(IN)                  :: source_pe
+  real(kind=8), target, intent(INOUt)  :: data(:)
+  integer :: source_id
+  real(kind=8), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  call jml_recv_waitall()
+  
+end subroutine h3ou_recv_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_local_int(source_pe, data)
+  use jcup_mpi_lib, only : jml_BcastLocal
+  implicit none
+  integer, intent(IN)    :: source_pe
+  integer, intent(INOUT) :: data(:)
+
+  call jml_BcastLocal(my_id, data, 1, size(data), source_pe) 
+  
+end subroutine h3ou_bcast_local_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_local_real(source_pe, data)
+  use jcup_mpi_lib, only : jml_BcastLocal
+  implicit none
+  integer, intent(IN)         :: source_pe
+  real(kind=4), intent(INOUT) :: data(:)
+
+  call jml_BcastLocal(my_id, data, 1, size(data), source_pe) 
+  
+end subroutine h3ou_bcast_local_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_local_double(source_pe, data)
+  use jcup_mpi_lib, only : jml_BcastLocal
+  implicit none
+  integer, intent(IN)         :: source_pe
+  real(kind=8), intent(INOUT) :: data(:)
+
+  call jml_BcastLocal(my_id, data, 1, size(data), source_pe) 
+  
+end subroutine h3ou_bcast_local_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_local_int(target_pe, data)
+  use jcup_mpi_lib, only : jml_SendLocal
+  implicit none
+  integer, intent(IN) :: target_pe
+  integer, intent(IN) :: data(:)
+
+  call jml_SendLocal(my_id, data, 1, size(data), target_pe)
+
+end subroutine h3ou_send_local_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_local_real(target_pe, data)
+  use jcup_mpi_lib, only : jml_SendLocal
+  implicit none
+  integer, intent(IN) :: target_pe
+  real(kind=4), intent(IN) :: data(:)
+
+  call jml_SendLocal(my_id, data, 1, size(data), target_pe)
+
+end subroutine h3ou_send_local_real
+
+  
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_local_double(target_pe, data)
+  use jcup_mpi_lib, only : jml_SendLocal
+  implicit none
+  integer, intent(IN) :: target_pe
+  real(kind=8), intent(IN) :: data(:)
+
+  call jml_SendLocal(my_id, data, 1, size(data), target_pe)
+
+end subroutine h3ou_send_local_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_local_int(source_pe, data)
+  use jcup_mpi_lib, only : jml_RecvLocal
+  implicit none
+  integer, intent(IN) :: source_pe
+  integer, intent(INOUT) :: data(:)
+
+  call jml_RecvLocal(my_id, data, 1, size(data), source_pe)
+
+end subroutine h3ou_recv_local_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_local_real(source_pe, data)
+  use jcup_mpi_lib, only : jml_RecvLocal
+  implicit none
+  integer, intent(IN) :: source_pe
+  real(kind=4), intent(INOUT) :: data(:)
+
+  call jml_RecvLocal(my_id, data, 1, size(data), source_pe)
+
+end subroutine h3ou_recv_local_real
+  
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_local_double(source_pe, data)
+  use jcup_mpi_lib, only : jml_RecvLocal
+  implicit none
+  integer, intent(IN) :: source_pe
+  real(kind=8), intent(INOUT) :: data(:)
+
+  call jml_RecvLocal(my_id, data, 1, size(data), source_pe)
+
+end subroutine h3ou_recv_local_double
+  
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
 end module h3ou_api

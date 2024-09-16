@@ -1,7 +1,7 @@
 #
 # Set TOPDIR here or as a environmental variable.
 # 
-TOPDIR = /home/arakawa/work/2024H3OPEN/h3ou2024
+TOPDIR = /home/arakawa/work/2024H3OPEN/h3ou2024/h3-Open-UTIL-MP
 #TOPDIR = /home/c26011/work3/2024TSMP/toysmp
 #TOPDIR = /p/home/jusers/arakawa1/deep/work/2023TSMP/toysmp
 H3OUDIR = $(TOPDIR)/h3ou

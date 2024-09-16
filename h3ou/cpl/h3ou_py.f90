@@ -37,6 +37,26 @@ end subroutine h3oup_get_mpi_parameter
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
+integer function h3oup_get_my_rank() bind(C)
+  use h3ou_api, only : h3ou_get_my_rank
+  implicit none
+
+  h3oup_get_my_rank = h3ou_get_my_rank()
+
+end function h3oup_get_my_rank
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+integer function h3oup_get_my_size() bind(C)
+  use h3ou_api, only : h3ou_get_my_size
+  implicit none
+
+  h3oup_get_my_size = h3ou_get_my_size()
+
+end function h3oup_get_my_size
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
 subroutine h3oup_def_grid(grid_index, ngrid, &
                          comp_name, len_comp, &
                          grid_name, len_grid, &
@@ -518,21 +538,6 @@ end subroutine h3oup_inc_calendar
 !=======+=========+=========+=========+=========+=========+=========+=========+
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
-subroutine h3oup_init_simple(comp_name, name_len, log_level, log_level_len, stop_step, debug_mode) bind(C)
-  use h3ou_py_base, only : get_char_str
-  use h3ou_api, only : h3ou_init_simple
-  character(len=1), intent(IN) :: comp_name
-  integer, intent(IN)          :: name_len
-  character(len=1), intent(IN) :: log_level
-  integer, intent(IN)          :: log_level_len
-  integer, intent(IN)          :: stop_step
-  integer, intent(IN)          :: debug_mode
-
-  call h3ou_init_simple(trim(get_char_str(comp_name, name_len)), trim(get_char_str(log_level, log_level_len)), &
-                        stop_step, .not.(debug_mode == 0), .false.)
-
-end subroutine h3oup_init_simple
-
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
 subroutine h3oup_end() bind(C)
@@ -718,4 +723,327 @@ subroutine h3oup_recv_double_array(source_name, name_len, val, array_size) bind(
   
 end subroutine h3oup_recv_double_array
 
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_isend_model_int(target_name, name_len, target_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_isend_model_int
+  implicit none
+  character(len=1), intent(IN) :: target_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: target_pe
+  integer, intent(IN)          :: array_size
+  integer, intent(IN)          :: data(array_size)
+
+  call h3ou_isend_model_int(trim(get_char_str(target_name, name_len)), target_pe, data)
+  
+end subroutine h3oup_isend_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_isend_model_real(target_name, name_len, target_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_isend_model_real
+  implicit none
+  character(len=1), intent(IN) :: target_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: target_pe
+  integer, intent(IN)          :: array_size
+  real(kind=4), intent(IN)     :: data(array_size)
+
+  call h3ou_isend_model_real(trim(get_char_str(target_name, name_len)), target_pe, data)
+  
+end subroutine h3oup_isend_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_isend_model_double(target_name, name_len, target_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_isend_model_double
+  implicit none
+  character(len=1), intent(IN) :: target_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: target_pe
+  integer, intent(IN)          :: array_size
+  real(kind=8), intent(IN)     :: data(array_size)
+
+  call h3ou_isend_model_double(trim(get_char_str(target_name, name_len)), target_pe, data)
+  
+end subroutine h3oup_isend_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_irecv_model_int(source_name, name_len, source_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_irecv_model_int
+  implicit none
+  character(len=1), intent(IN) :: source_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: source_pe
+  integer, intent(IN)          :: array_size
+  integer, intent(INOUT)       :: data(array_size)
+
+  call h3ou_irecv_model_int(trim(get_char_str(source_name, name_len)), source_pe, data)
+  
+end subroutine h3oup_irecv_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_irecv_model_real(source_name, name_len, source_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_irecv_model_real
+  implicit none
+  character(len=1), intent(IN) :: source_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: source_pe
+  integer, intent(IN)          :: array_size
+  real(kind=4), intent(INOUT)  :: data(array_size)
+
+  call h3ou_irecv_model_real(trim(get_char_str(source_name, name_len)), source_pe, data)
+  
+end subroutine h3oup_irecv_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_irecv_model_double(source_name, name_len, source_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_irecv_model_double
+  implicit none
+  character(len=1), intent(IN) :: source_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: source_pe
+  integer, intent(IN)          :: array_size
+  real(kind=8), intent(INOUT)  :: data(array_size)
+
+  call h3ou_irecv_model_double(trim(get_char_str(source_name, name_len)), source_pe, data)
+  
+end subroutine h3oup_irecv_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_isend_waitall() bind(C)
+  use h3ou_api, only : h3ou_isend_waitall
+  implicit none
+
+  call h3ou_isend_waitall()
+  
+end subroutine h3oup_isend_waitall
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_irecv_waitall() bind(C)
+  use h3ou_api, only : h3ou_irecv_waitall
+  implicit none
+
+  call h3ou_irecv_waitall()
+  
+end subroutine h3oup_irecv_waitall
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_send_model_int(target_name, name_len, target_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_send_model_int
+  implicit none
+  character(len=1), intent(IN) :: target_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: target_pe
+  integer, intent(IN)          :: array_size
+  integer, intent(IN)          :: data(array_size)
+
+  call h3ou_send_model_int(trim(get_char_str(target_name, name_len)), target_pe, data)
+  
+end subroutine h3oup_send_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_send_model_real(target_name, name_len, target_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_send_model_real
+  implicit none
+  character(len=1), intent(IN) :: target_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: target_pe
+  integer, intent(IN)          :: array_size
+  real(kind=4), intent(IN)     :: data(array_size)
+
+  call h3ou_send_model_real(trim(get_char_str(target_name, name_len)), target_pe, data)
+  
+end subroutine h3oup_send_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_send_model_double(target_name, name_len, target_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_send_model_double
+  implicit none
+  character(len=1), intent(IN) :: target_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: target_pe
+  integer, intent(IN)          :: array_size
+  real(kind=8), intent(IN)     :: data(array_size)
+
+  call h3ou_send_model_double(trim(get_char_str(target_name, name_len)), target_pe, data)
+  
+end subroutine h3oup_send_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_recv_model_int(source_name, name_len, source_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_recv_model_int
+  implicit none
+  character(len=1), intent(IN) :: source_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: source_pe
+  integer, intent(IN)          :: array_size
+  integer, intent(INOUT)       :: data(array_size)
+
+  call h3ou_recv_model_int(trim(get_char_str(source_name, name_len)), source_pe, data)
+  
+end subroutine h3oup_recv_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_recv_model_real(source_name, name_len, source_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_recv_model_real
+  implicit none
+  character(len=1), intent(IN) :: source_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: source_pe
+  integer, intent(IN)          :: array_size
+  real(kind=4), intent(INOUT)  :: data(array_size)
+
+  call h3ou_recv_model_real(trim(get_char_str(source_name, name_len)), source_pe, data)
+  
+end subroutine h3oup_recv_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_recv_model_double(source_name, name_len, source_pe, data, array_size) bind(C)
+  use h3ou_py_base, only : get_char_str
+  use h3ou_api, only : h3ou_recv_model_double
+  implicit none
+  character(len=1), intent(IN) :: source_name
+  integer, intent(IN)          :: name_len
+  integer, intent(IN)          :: source_pe
+  integer, intent(IN)          :: array_size
+  real(kind=8), intent(INOUT)  :: data(array_size)
+
+  call h3ou_recv_model_double(trim(get_char_str(source_name, name_len)), source_pe, data)
+  
+end subroutine h3oup_recv_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_bcast_local_int(source_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_bcast_local
+  implicit none
+  integer, intent(IN)    :: source_pe
+  integer, intent(IN)    :: array_size
+  integer, intent(INOUT) :: data(array_size)
+
+  call h3ou_bcast_local(source_pe, data)
+
+end subroutine h3oup_bcast_local_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_bcast_local_real(source_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_bcast_local
+  implicit none
+  integer, intent(IN)         :: source_pe
+  integer, intent(IN)         :: array_size
+  real(kind=4), intent(INOUT) :: data(array_size)
+
+  call h3ou_bcast_local(source_pe, data)
+
+end subroutine h3oup_bcast_local_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_bcast_local_double(source_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_bcast_local
+  implicit none
+  integer, intent(IN)         :: source_pe
+  integer, intent(IN)         :: array_size
+  real(kind=8), intent(INOUT) :: data(array_size)
+
+  call h3ou_bcast_local(source_pe, data)
+
+end subroutine h3oup_bcast_local_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_send_local_int(target_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_send_local_all
+  integer, intent(IN) :: target_pe
+  integer, intent(IN) :: array_size
+  integer, intent(IN) :: data(array_size)
+
+  call h3ou_send_local_all(target_pe, data)
+
+end subroutine h3oup_send_local_int
+  
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_send_local_real(target_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_send_local_all
+  integer, intent(IN) :: target_pe
+  integer, intent(IN) :: array_size
+  real(kind=4), intent(IN) :: data(array_size)
+
+  call h3ou_send_local_all(target_pe, data)
+
+end subroutine h3oup_send_local_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_send_local_double(target_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_send_local_all
+  integer, intent(IN) :: target_pe
+  integer, intent(IN) :: array_size
+  real(kind=8), intent(IN) :: data(array_size)
+
+  call h3ou_send_local_all(target_pe, data)
+
+end subroutine h3oup_send_local_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_recv_local_int(source_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_recv_local_all
+  integer, intent(IN) :: source_pe
+  integer, intent(IN) :: array_size
+  integer, intent(INOUT) :: data(array_size)
+
+  call h3ou_recv_local_all(source_pe, data)
+
+end subroutine h3oup_recv_local_int
+  
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_recv_local_real(source_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_recv_local_all
+  integer, intent(IN) :: source_pe
+  integer, intent(IN) :: array_size
+  real(kind=4), intent(INOUT) :: data(array_size)
+
+  call h3ou_recv_local_all(source_pe, data)
+
+end subroutine h3oup_recv_local_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3oup_recv_local_double(source_pe, data, array_size) bind(C)
+  use h3ou_api, only : h3ou_recv_local_all
+  integer, intent(IN) :: source_pe
+  integer, intent(IN) :: array_size
+  real(kind=8), intent(INOUT) :: data(array_size)
+
+  call h3ou_recv_local_all(source_pe, data)
+
+end subroutine h3oup_recv_local_double
+  
 !=======+=========+=========+=========+=========+=========+=========+=========+

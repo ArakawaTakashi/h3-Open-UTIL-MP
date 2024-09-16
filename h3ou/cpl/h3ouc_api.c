@@ -236,24 +236,11 @@ void h3ouc_inc_calendar(int * time_array, int delta_t) {
 
 }
 
+
 //------------------------------------------------------------------------------------------------
-
-void h3ouc_init_simple(char * comp_name) {
-  int comp_name_len ;
-  char * log_level = "SILENT" ; 
-  int log_level_len ;
-  int stop_step ;
-  int debug_mode ;
-
-  comp_name_len = strlen(comp_name) ;
-  log_level_len = strlen(log_level) ;
-  stop_step = 0 ;
-  debug_mode = 0 ;
-
-  h3oup_init_simple(comp_name, & comp_name_len, log_level, & log_level_len, & stop_step, & debug_mode) ; 
-  
-}
-
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
 
 void h3ouc_end(void) {
@@ -391,5 +378,136 @@ void h3ouc_recv_double_array(char *target_name, double * data, int array_size) {
   
 }
 
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_isend_model_int(char * target_name, int target_pe, int * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_isend_model_int(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_isend_model_float(char * target_name, int target_pe, float * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_isend_model_real(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_isend_model_double(char * target_name, int target_pe, double * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_isend_model_double(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_irecv_model_int(char * source_name, int source_pe, int * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_irecv_model_int(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_irecv_model_float(char * source_name, int source_pe, float * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_irecv_model_real(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_irecv_model_double(char * source_name, int source_pe, double * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_irecv_model_double(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_isend_waitall(void) {
+  h3oup_isend_waitall() ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_irecv_waitall(void) {
+  h3oup_irecv_waitall() ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_model_int(char * target_name, int target_pe, int * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_send_model_int(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_model_float(char * target_name, int target_pe, float * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_send_model_real(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_model_double(char * target_name, int target_pe, double * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_send_model_double(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_model_int(char * source_name, int source_pe, int * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_recv_model_int(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_model_float(char * source_name, int source_pe, float * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_recv_model_real(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_model_double(char * source_name, int source_pe, double * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_recv_model_double(source_name, & name_len, & source_pe, data, & array_size) ;
+}
 //------------------------------------------------------------------------------------------------
 
