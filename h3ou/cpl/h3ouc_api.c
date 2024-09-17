@@ -1,6 +1,7 @@
 #include "h3ouc.h"
 #include "h3oup.h"
 #include <string.h>
+#include <stdio.h>
 
 int my_grid_size  = 0 ;
 
@@ -247,71 +248,90 @@ void h3ouc_end(void) {
   h3oup_end() ;
 }
 
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//----------------------------------- Global Functions -------------------------------------------
+//------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
 
-void h3ouc_send_int(char *target_name, int data) {
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_bcast_global_int(char * source_name, int * data, int array_size) {
   int name_len ;
 
-  name_len = strlen(target_name) ;
+  name_len = strlen(source_name) ;
 
-  h3oup_send_int_scalar(target_name, & name_len, & data) ;
-  
+  h3oup_bcast_global_int(source_name, & name_len, data, & array_size) ;
 }
 
 //------------------------------------------------------------------------------------------------
 
-void h3ouc_send_float(char *target_name, float data) {
+void h3ouc_bcast_global_float(char * source_name, float * data, int array_size) {
   int name_len ;
 
-  name_len = strlen(target_name) ;
+  name_len = strlen(source_name) ;
 
-  h3oup_send_real_scalar(target_name, & name_len, & data) ;
-  
+  h3oup_bcast_global_real(source_name, & name_len, data, & array_size) ;
 }
 
 //------------------------------------------------------------------------------------------------
 
-void h3ouc_send_double(char *target_name, double data) {
+void h3ouc_bcast_global_double(char * source_name, double * data, int array_size) {
   int name_len ;
 
-  name_len = strlen(target_name) ;
+  name_len = strlen(source_name) ;
 
-  h3oup_send_double_scalar(target_name, & name_len, & data) ;
-  
+  h3oup_bcast_global_double(source_name, & name_len, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//---------------------------------- Inter Model Functions ---------------------------------------
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_bcast_model_int(char * source_name, char * target_name, int * data, int array_size) {
+  int source_len ;
+  int target_len ;
+
+  source_len = strlen(source_name) ;
+  target_len = strlen(target_name) ;
+
+  h3oup_bcast_model_int(source_name, & source_len, target_name, & target_len, data, & array_size) ;
+
 }
 
 //------------------------------------------------------------------------------------------------
 
-void h3ouc_recv_int(char *target_name, int * data) {
-  int name_len ;
+void h3ouc_bcast_model_float(char * source_name, char * target_name, float * data, int array_size) {
+  int source_len ;
+  int target_len ;
 
-  name_len = strlen(target_name) ;
+  source_len = strlen(source_name) ;
+  target_len = strlen(target_name) ;
 
-  h3oup_recv_int_scalar(target_name, & name_len, data) ;
-  
+  h3oup_bcast_model_real(source_name, & source_len, target_name, & target_len, data, & array_size) ;
+
 }
 
 //------------------------------------------------------------------------------------------------
 
-void h3ouc_recv_float(char *target_name, float * data) {
-  int name_len ;
+void h3ouc_bcast_model_double(char * source_name, char * target_name, double * data, int array_size) {
+  int source_len ;
+  int target_len ;
 
-  name_len = strlen(target_name) ;
+  source_len = strlen(source_name) ;
+  target_len = strlen(target_name) ;
 
-  h3oup_recv_real_scalar(target_name, & name_len, data) ;
-  
+  h3oup_bcast_model_double(source_name, & source_len, target_name, & target_len, data, & array_size) ;
+
 }
 
 //------------------------------------------------------------------------------------------------
-
-void h3ouc_recv_double(char *target_name, double * data) {
-  int name_len ;
-
-  name_len = strlen(target_name) ;
-
-  h3oup_recv_double_scalar(target_name, & name_len, data) ;
-  
-}
+//------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
 
 void h3ouc_send_int_array(char *target_name, int data[], int array_size) {
@@ -377,6 +397,137 @@ void h3ouc_recv_double_array(char *target_name, double * data, int array_size) {
   h3oup_recv_double_array(target_name, & name_len, data, & array_size) ;
   
 }
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_model_int(char * target_name, int target_pe, int * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_send_model_int(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_model_float(char * target_name, int target_pe, float * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_send_model_real(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_model_double(char * target_name, int target_pe, double * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(target_name) ;
+
+  h3oup_send_model_double(target_name, & name_len, & target_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_model_int(char * source_name, int source_pe, int * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_recv_model_int(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_model_float(char * source_name, int source_pe, float * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_recv_model_real(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_model_double(char * source_name, int source_pe, double * data,  int array_size) {
+  int name_len ;
+  
+  name_len = strlen(source_name) ;
+
+  h3oup_recv_model_double(source_name, & name_len, & source_pe, data, & array_size) ;
+}
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_int(char *target_name, int data) {
+  int name_len ;
+
+  name_len = strlen(target_name) ;
+
+  h3oup_send_int_scalar(target_name, & name_len, & data) ;
+  
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_float(char *target_name, float data) {
+  int name_len ;
+
+  name_len = strlen(target_name) ;
+
+  h3oup_send_real_scalar(target_name, & name_len, & data) ;
+  
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_send_double(char *target_name, double data) {
+  int name_len ;
+
+  name_len = strlen(target_name) ;
+
+  h3oup_send_double_scalar(target_name, & name_len, & data) ;
+  
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_int(char *target_name, int * data) {
+  int name_len ;
+
+  name_len = strlen(target_name) ;
+
+  h3oup_recv_int_scalar(target_name, & name_len, data) ;
+  
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_float(char *target_name, float * data) {
+  int name_len ;
+
+  name_len = strlen(target_name) ;
+
+  h3oup_recv_real_scalar(target_name, & name_len, data) ;
+  
+}
+
+//------------------------------------------------------------------------------------------------
+
+void h3ouc_recv_double(char *target_name, double * data) {
+  int name_len ;
+
+  name_len = strlen(target_name) ;
+
+  h3oup_recv_double_scalar(target_name, & name_len, data) ;
+  
+}
+
 
 //------------------------------------------------------------------------------------------------
 
@@ -450,64 +601,5 @@ void h3ouc_irecv_waitall(void) {
   h3oup_irecv_waitall() ;
 }
 
-//------------------------------------------------------------------------------------------------
-
-void h3ouc_send_model_int(char * target_name, int target_pe, int * data,  int array_size) {
-  int name_len ;
-  
-  name_len = strlen(target_name) ;
-
-  h3oup_send_model_int(target_name, & name_len, & target_pe, data, & array_size) ;
-}
-
-//------------------------------------------------------------------------------------------------
-
-void h3ouc_send_model_float(char * target_name, int target_pe, float * data,  int array_size) {
-  int name_len ;
-  
-  name_len = strlen(target_name) ;
-
-  h3oup_send_model_real(target_name, & name_len, & target_pe, data, & array_size) ;
-}
-
-//------------------------------------------------------------------------------------------------
-
-void h3ouc_send_model_double(char * target_name, int target_pe, double * data,  int array_size) {
-  int name_len ;
-  
-  name_len = strlen(target_name) ;
-
-  h3oup_send_model_double(target_name, & name_len, & target_pe, data, & array_size) ;
-}
-
-//------------------------------------------------------------------------------------------------
-
-void h3ouc_recv_model_int(char * source_name, int source_pe, int * data,  int array_size) {
-  int name_len ;
-  
-  name_len = strlen(source_name) ;
-
-  h3oup_recv_model_int(source_name, & name_len, & source_pe, data, & array_size) ;
-}
-
-//------------------------------------------------------------------------------------------------
-
-void h3ouc_recv_model_float(char * source_name, int source_pe, float * data,  int array_size) {
-  int name_len ;
-  
-  name_len = strlen(source_name) ;
-
-  h3oup_recv_model_real(source_name, & name_len, & source_pe, data, & array_size) ;
-}
-
-//------------------------------------------------------------------------------------------------
-
-void h3ouc_recv_model_double(char * source_name, int source_pe, double * data,  int array_size) {
-  int name_len ;
-  
-  name_len = strlen(source_name) ;
-
-  h3oup_recv_model_double(source_name, & name_len, & source_pe, data, & array_size) ;
-}
 //------------------------------------------------------------------------------------------------
 

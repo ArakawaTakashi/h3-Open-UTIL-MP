@@ -1,31 +1,67 @@
 #include "h3ouc.h"
 #include <stdio.h>
+#include "mpi.h"
 
 int main(void) {
-  int target_data ;
-  int my_data ; 
-  int send_data[5] ; 
-  int recv_data[5] ;
-  int array_size = 5 ; 
-  int recv_array[10] ;
+  char * my_name = "compC" ;
+  int    my_comm, my_group, my_size, my_rank ;  
+  int    array_size = 10 ;
+  int    my_array_int[array_size] ;
+  float  my_array_float[array_size] ;
+  double my_array_double[array_size] ;
+  int    target_array_int[array_size] ;
+  float  target_array_float[array_size] ;
+  double target_array_double[array_size] ;
   
-  my_data = 100 ;
+  // initialize  
+  h3ouc_init(my_name, "coupling.conf") ;
+
+  // get mpi parameters
+  h3ouc_get_mpi_parameter(my_name, & my_comm, & my_group, & my_size, & my_rank) ; 
   
-  h3ouc_init("compC", "coupling.conf") ;
-  h3ouc_recv_int("compA", & target_data) ;
-  h3ouc_send_int("compA", my_data) ; 
-  printf(" compC target_data = %d\n", target_data) ; 
-  h3ouc_recv_int_array("compD", recv_data, array_size) ; 
+  printf("compC my_size = %d, my_rank = %d\n", my_size, my_rank) ;
+
+  // set my array
   for (int i = 0 ; i < array_size ; i++) {
-    printf("%d\n", recv_data[i]) ;
-    send_data[i] = i ; 
+    my_array_int[i] = 30000 + my_rank * 100 + i +1 ; 
+    my_array_float[i] = my_array_int[i] ;
+    my_array_double[i] = my_array_int[i] ;
   }
 
-  h3ouc_send_int_array("compD", send_data, array_size) ;
+  // bcast global
 
-  // h3ouc_irecv_model_int("compA", 0, recv_array, 10) ;
-  //h3ouc_irecv_waitall() ;
+  h3ouc_bcast_global_int("compA", target_array_int, array_size) ;
+  h3ouc_bcast_global_float("compB", target_array_float, array_size) ;
+
+  if (my_rank == 0) {
+    printf("compC bcast data \n") ; 
+    h3ouc_bcast_global_double("compC", my_array_double, array_size) ;
+  } else {
+    h3ouc_bcast_global_double("compC", target_array_double, array_size) ;
+    for (int i = 0 ; i < array_size ; i++) {
+      printf("target array = %d\n", target_array_double[i]) ;
+    }
+  }
+
+  // bcast model
+
+  h3ouc_bcast_model_float("compC", "compD", my_array_float, array_size) ;
+  h3ouc_bcast_model_double("compD", "compC", target_array_double, array_size) ;
+  for (int i = 0 ; i < array_size ; i++) {
+     printf("bcast_model, target array = %lf\n", target_array_double[i]) ;
+  }
+  
+  // send/recv model
+
+  if (my_rank == 0) {
+    h3ouc_send_model_float("compD", 0, my_array_float, array_size) ;
+    h3ouc_recv_model_double("compD", 0, target_array_double, array_size) ;
+    for (int i = 0 ; i < array_size ; i++) {
+      printf("compC send/recv model array = %lf\n", target_array_double[i]) ;
+    }
+  }
   
   h3ouc_end() ;
+
   return 0 ; 
 }

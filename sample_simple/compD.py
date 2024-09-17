@@ -4,52 +4,73 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "/home/arakawa/work/2024
 import h3ou as h3opp
 import numpy as np
 
-h3opp.h3ou_init("compD", "coupling.conf")
 
-my_rank = h3opp.h3ou_get_my_rank()
-print("my_rank = ", my_rank)
+my_name = "compD"
+
+# initialize
+h3opp.h3ou_init(my_name, "coupling.conf")
+
+# get mpi parameter
 
 my_size = h3opp.h3ou_get_my_size()
-print("my_size = ", my_size)
+my_rank = h3opp.h3ou_get_my_rank()
 
+print("compD my size = ", my_size, ", my_rank = ", my_rank)
 
-target_data = 0
-my_data = 100000
-recv_data = h3opp.h3ou_recv_scalar("compA", target_data)
-h3opp.h3ou_send_scalar("compA", my_data)
+# set my array
+array_size = 10
 
-print("compD target_data = ", recv_data)
+my_array_int    = np.arange(1, array_size + 1, dtype = np.int32)
+my_array_real   = np.arange(1, array_size + 1, dtype = np.float32)
+my_array_double = np.arange(1, array_size + 1, dtype = np.float64)
+target_array_int    = np.zeros(array_size, dtype = np.int32)
+target_array_real   = np.zeros(array_size, dtype = np.float32)
+target_array_double = np.zeros(array_size, dtype = np.float64)
 
-send_array = [1, 2, 3, 4, 5]
-recv_array = [0, 0, 0, 0, 0]
+# bcast global
 
-h3opp.h3ou_send_array("compC", send_array)
-recv_array = h3opp.h3ou_recv_array("compC", recv_array)
+target_array = h3opp.h3ou_bcast_global_int("compA", target_array_int)
 
+print("bcast from compA = ", target_array)
 
-print("compD recv_array = ", recv_array)
+target_array = h3opp.h3ou_bcast_global_real("compB", target_array_real)
 
-recv_array = [0, 0, 0, 0, 0]
- 
-irecv_array = np.zeros(10, dtype = np.int32)
+print("bcast from compB = ", target_array)
 
-source_pe = 0
+target_array = h3opp.h3ou_bcast_global_double("compC", target_array_double)
 
-if (my_rank ==1):
-    recv_list = h3opp.h3ou_recv_model_int("compA", source_pe, irecv_array)
-    irecv_array[:] = recv_list[:]
-    print("irecv call OK ", recv_list)
+print("bcast from compC = ", target_array)
 
-recv_list = h3opp.h3ou_bcast_local_int(1, irecv_array)
-print("bcast call OK ", recv_list)
+# bcast model
 
+target_array = h3opp.h3ou_bcast_model_real("compC", "compD", target_array_real)
+
+print("compD bcast_model from compC = ", target_array)
+
+target_array = h3opp.h3ou_bcast_model_double("compD", "compC", my_array_double)
+
+# send/recvt model
 
 if (my_rank == 0):
-    h3opp.h3ou_send_local_int(1, send_array)
-elif (my_rank == 1):
-    recv_array = h3opp.h3ou_recv_local_int(0, recv_array)
-    print("h3ou_recv_local, recv_array = ", recv_array)
-    
+    target_array = h3opp.h3ou_recv_model_real("compC", 0, target_array_real)
+    print("compD send/recv model, ", target_array)
+    h3opp.h3ou_send_model_double("compC", 0, my_array_double)
+
+# bcast local
+
+target_array = h3opp.h3ou_bcast_local_double(0, my_array_double)
+
+print("compD bcast local, ", target_array)
+
+# send/recv local
+
+if (my_size >= 2):
+    if (my_rank == 0):
+        h3opp.h3ou_send_local_double(1, my_array_double)
+    if (my_rank == 1):
+        target_array = h3opp.h3ou_recv_local_double(0, target_array_double)
+        print("compD send/recv local, ", target_array)
+        
 h3opp.h3ou_end()
 
 

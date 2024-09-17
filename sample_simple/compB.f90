@@ -1,20 +1,59 @@
 program compB
   use h3ou_api
-  integer :: my_data = 10
-  integer :: target_data
-  integer :: recv_array(10)
+  implicit none
+  character(len=5)  :: my_name = "compB"
+  integer           :: my_comm, my_group, my_size, my_rank
+  integer,parameter :: array_size = 10
+  integer           :: my_array_int(array_size)
+  real(kind=4)      :: my_array_real(array_size)
+  real(kind=8)      :: my_array_double(array_size)
+  integer           :: target_array_int(array_size)
+  real(kind=4)      :: target_array_real(array_size)
+  real(kind=8)      :: target_array_double(array_size)
+  integer           :: i
   
-  !call h3ou_init_simple("compB", "LOUD")
-  call h3ou_init("compB", "coupling.conf")
+  ! initialize
+  call h3ou_init(my_name, "coupling.conf")
 
-  call h3ou_recv("compA", target_data)
-  call h3ou_send("compA", my_data)
-  write(0, *) "compB target_data = ", target_data
-
-  call h3ou_recv_model_int("compA", 0, recv_array)
-
-  write(0, *) "irecv array = ", recv_array
+  ! get mpi parameters
+  call h3ou_get_mpi_parameter(my_name, my_comm, my_group, my_size,  my_rank)
   
+  write(0, *) my_name//" my_size = ", my_size, ", my_rank = ", my_rank
+
+  ! set my array
+  do i = 1, array_size
+     my_array_int(i)    = 20000 + my_rank * 100 + i
+     my_array_real(i)   = my_array_int(i)
+     my_array_double(i) = my_array_int(i)
+  end do
+
+  ! bcast global
+
+  call h3ou_bcast_global("compA", target_array_int)
+
+  if (my_rank == 0) then
+     call h3ou_bcast_global("compB", my_array_real)
+  else
+     call h3ou_bcast_global("compB", target_array_real)
+  end if
+  
+  call h3ou_bcast_global("compC", target_array_double)
+
+  ! bcast model
+
+  target_array_int = 0
+  call h3ou_bcast_model("compA", "compB", target_array_int)
+  write(0, *) "compB bcast_model, ", target_array_int
+  
+  ! send/recv model
+
+  if (my_rank == 0) then
+     call h3ou_recv_model("compA", 0, target_array_double)
+     call h3ou_send_model("compA", 0, my_array_real)
+     write(0, *) "compB send/recv model, ", target_array_double
+  end if
+  
+
   call h3ou_coupling_end()
   
 end program compB

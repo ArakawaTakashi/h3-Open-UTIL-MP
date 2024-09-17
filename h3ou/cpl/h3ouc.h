@@ -51,6 +51,18 @@ void h3ouc_init_simple(char * comp_name) ;
 
 void h3ouc_end(void) ; 
 
+void h3ouc_bcast_global_int(char * source_name, int * data, int array_size) ;
+
+void h3ouc_bcast_global_float(char * source_name, float * data, int array_size) ;
+
+void h3ouc_bcast_global_double(char * source_name, double * data, int array_size) ;
+
+void h3ouc_bcast_model_int(char * source_name, char * target_name, int * data, int data_size) ;
+
+void h3ouc_bcast_model_float(char * source_name, char * target_name, float * data, int data_size) ;
+
+void h3ouc_bcast_model_double(char * source_name, char * target_name, double * data, int data_size) ;
+
 void h3ouc_send_int(char * target_name, int data) ;
 
 void h3ouc_send_float(char * target_name, float data) ;

@@ -100,6 +100,8 @@ module jcup_mpi_lib
   interface jml_BcastGlobal
     module procedure jml_bcast_string_global_1, jml_bcast_string_global_2
     module procedure jml_bcast_int_1d_global
+    module procedure jml_bcast_real_1d_global
+    module procedure jml_bcast_double_1d_global
   end interface
 
   interface jml_SendGlobal
@@ -913,6 +915,46 @@ subroutine jml_bcast_int_1d_global(data,is,ie,source)
   call MPI_Bcast(data(is:),ie-is+1,MPI_INTEGER,source_rank,global%mpi_comm,ierror)
 
 end subroutine jml_bcast_int_1d_global
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine jml_bcast_real_1d_global(data,is,ie,source)
+  implicit none
+  real(kind=4), intent(INOUT) :: data(:)
+  integer, intent(IN) :: is, ie
+  integer, intent(IN), optional :: source
+
+  integer :: source_rank
+
+  if (present(source)) then
+    source_rank = source
+  else
+    source_rank = global%root_rank
+  end if
+
+  call MPI_Bcast(data(is:),ie-is+1,MPI_FLOAT,source_rank,global%mpi_comm,ierror)
+
+end subroutine jml_bcast_real_1d_global
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine jml_bcast_double_1d_global(data,is,ie,source)
+  implicit none
+  real(kind=8), intent(INOUT) :: data(:)
+  integer, intent(IN) :: is, ie
+  integer, intent(IN), optional :: source
+
+  integer :: source_rank
+
+  if (present(source)) then
+    source_rank = source
+  else
+    source_rank = global%root_rank
+  end if
+
+  call MPI_Bcast(data(is:),ie-is+1,MPI_DOUBLE_PRECISION,source_rank,global%mpi_comm,ierror)
+
+end subroutine jml_bcast_double_1d_global
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
@@ -2120,7 +2162,7 @@ subroutine jml_recv_real_1d_leader(data,is,ie,source,tag)
   integer, intent(IN)  :: source
   integer, optional, intent(IN) :: tag
 
-  integer :: buffer(is:ie)
+  real(kind=4) :: buffer(is:ie)
   integer :: request
   integer :: status(MPI_STATUS_SIZE)
   integer :: source_rank
@@ -2136,7 +2178,7 @@ subroutine jml_recv_real_1d_leader(data,is,ie,source,tag)
 
   source_rank = leader_pe(source)
   
-  call MPI_IRECV(buffer,ie-is+1,MPI_INTEGER,source_rank,MPI_TAG,leader%mpi_comm,request,ierror)
+  call MPI_IRECV(buffer,ie-is+1,MPI_REAL,source_rank,MPI_TAG,leader%mpi_comm,request,ierror)
   call MPI_WAIT(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)

@@ -609,8 +609,12 @@ def h3ou_coupling_end(time_array):
 
 #=======+=========+=========+=========+=========+=========+=========+=========+
 #=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+            Simple Mode APIs           +=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
 #=======+=========+=========+=========+=========+=========+=========+=========+
 
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
 #=======+=========+=========+=========+=========+=========+=========+=========+
 
 def h3ou_end():
@@ -622,7 +626,482 @@ def h3ou_end():
     h3oupf.h3oup_end()
 
 #=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+            Global Functions           +=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
 
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_global_int(source_name, data):
+    h3oupf.h3oup_bcast_global_int.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_global_int.restype = ctypes.c_void_p
+
+    name_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    name_len = len(source_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_int * len(data))(*data)
+
+    h3oupf.h3oup_bcast_global_int(name_str, ctypes.byref(ctypes.c_int32(name_len)), \
+                                  ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                  ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_global_real(source_name, data):
+    h3oupf.h3oup_bcast_global_real.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_global_real.restype = ctypes.c_void_p
+
+    name_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    name_len = len(source_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_float * len(data))(*data)
+
+    h3oupf.h3oup_bcast_global_real(name_str, ctypes.byref(ctypes.c_int32(name_len)), \
+                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                   ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_global_double(source_name, data):
+    h3oupf.h3oup_bcast_global_double.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_global_double.restype = ctypes.c_void_p
+
+    name_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    name_len = len(source_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+
+    h3oupf.h3oup_bcast_global_double(name_str, ctypes.byref(ctypes.c_int32(name_len)), \
+                                     ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                     ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+          Inter Model Functions        +=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_model_int(source_name, target_name, data):
+
+    h3oupf.h3oup_bcast_model_int.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_model_int.restype = ctypes.c_void_p
+
+    source_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    source_len = len(source_name)
+    target_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
+    target_len = len(target_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_int32 * len(data))(*data)
+    h3oupf.h3oup_bcast_model_int(source_str, ctypes.byref(ctypes.c_int32(source_len)), \
+                                 target_str, ctypes.byref(ctypes.c_int32(target_len)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_model_real(source_name, target_name, data):
+
+    h3oupf.h3oup_bcast_model_real.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_model_real.restype = ctypes.c_void_p
+
+    source_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    source_len = len(source_name)
+    target_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
+    target_len = len(target_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_float * len(data))(*data)
+    h3oupf.h3oup_bcast_model_real(source_str, ctypes.byref(ctypes.c_int32(source_len)), \
+                                  target_str, ctypes.byref(ctypes.c_int32(target_len)), \
+                                  ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                  ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_model_double(source_name, target_name, data):
+
+    h3oupf.h3oup_bcast_model_double.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_model_double.restype = ctypes.c_void_p
+
+    source_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    source_len = len(source_name)
+    target_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
+    target_len = len(target_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+    h3oupf.h3oup_bcast_model_double(source_str, ctypes.byref(ctypes.c_int32(source_len)), \
+                                    target_str, ctypes.byref(ctypes.c_int32(target_len)), \
+                                    ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                    ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_send_model_int(target_name, target_pe, data):
+
+    h3oupf.h3oup_send_model_int.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_send_model_int.restype = ctypes.c_void_p
+    
+    comp_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
+    comp_len = len(target_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_int32 * len(data))(*data)
+    h3oupf.h3oup_send_model_int(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(target_pe)), \
+                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                ctypes.byref(ctypes.c_int32(data_len)))
+
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_send_model_real(target_name, target_pe, data):
+
+    h3oupf.h3oup_send_model_real.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_send_model_real.restype = ctypes.c_void_p
+    
+    c_array = (ctypes.c_float * len(data))(*data)
+    h3oupf.h3oup_send_model_real(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(target_pe)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+     
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_send_model_double(target_name, target_pe, data):
+
+    h3oupf.h3oup_send_model_double.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_send_model_double.restype = ctypes.c_void_p
+
+    comp_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
+    comp_len = len(target_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+    h3oupf.h3oup_send_model_double(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(target_pe)), \
+                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                   ctypes.byref(ctypes.c_int32(data_len)))
+    
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_recv_model_int(source_name, source_pe, data):
+
+    h3oupf.h3oup_recv_model_int.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_recv_model_int.restype = ctypes.c_void_p
+    
+    comp_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    comp_len = len(source_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_int32 * len(data))(*data)
+    h3oupf.h3oup_recv_model_int(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(source_pe)), \
+                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_recv_model_real(source_name, source_pe, data):
+
+    h3oupf.h3oup_recv_model_real.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_recv_model_real.restype = ctypes.c_void_p
+    
+    comp_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    comp_len = len(source_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_float * len(data))(*data)
+    h3oupf.h3oup_recv_model_real(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(source_pe)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_recv_model_double(source_name, source_pe, data):
+
+    h3oupf.h3oup_recv_model_double.argtypes = [
+        ctypes.POINTER(ctypes.c_char),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_recv_model_double.restype = ctypes.c_void_p
+    
+    comp_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
+    comp_len = len(source_name)
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+    h3oupf.h3oup_recv_model_double(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(source_pe)), \
+                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                   ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+          Intra Model Functions        +=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_local_int(source_pe, data):
+    h3oupf.h3oup_bcast_local_int.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_local_int.restype = ctypes.c_void_p
+
+    data_len = len(data)
+
+    c_array = (ctypes.c_int * len(data))(*data)
+
+    h3oupf.h3oup_bcast_local_int(ctypes.byref(ctypes.c_int32(source_pe)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_local_real(source_pe, data):
+    h3oupf.h3oup_bcast_local_int.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_local_real.restype = ctypes.c_void_p
+
+    data_len = len(data)
+
+    c_array = (ctypes.c_float * len(data))(*data)
+
+    h3oupf.h3oup_bcast_local_real(ctypes.byref(ctypes.c_int32(source_pe)), \
+                                  ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                  ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_bcast_local_double(source_pe, data):
+    h3oupf.h3oup_bcast_local_int.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_bcast_local_double.restype = ctypes.c_void_p
+
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+
+    h3oupf.h3oup_bcast_local_int(ctypes.byref(ctypes.c_int32(source_pe)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_send_local_int(target_pe, data):
+
+    h3oupf.h3oup_send_local_int.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_send_local_int.restype = ctypes.c_void_p
+    
+    data_len = len(data)
+
+    c_array = (ctypes.c_int32 * len(data))(*data)
+    h3oupf.h3oup_send_local_int(ctypes.byref(ctypes.c_int32(target_pe)), \
+                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                ctypes.byref(ctypes.c_int32(data_len)))
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_send_local_real(target_pe, data):
+
+    h3oupf.h3oup_send_local_real.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_send_local_real.restype = ctypes.c_void_p
+    
+    data_len = len(data)
+
+    c_array = (ctypes.c_float * len(data))(*data)
+    h3oupf.h3oup_send_local_real(ctypes.byref(ctypes.c_int32(target_pe)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_send_local_double(target_pe, data):
+
+    h3oupf.h3oup_send_local_double.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_send_local_double.restype = ctypes.c_void_p
+    
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+    h3oupf.h3oup_send_local_double(ctypes.byref(ctypes.c_int32(target_pe)), \
+                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                   ctypes.byref(ctypes.c_int32(data_len)))
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_recv_local_int(source_pe, data):
+
+    h3oupf.h3oup_recv_local_int.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_recv_local_int.restype = ctypes.c_void_p
+    
+    data_len = len(data)
+
+    c_array = (ctypes.c_int32 * len(data))(*data)
+    h3oupf.h3oup_recv_local_int(ctypes.byref(ctypes.c_int32(source_pe)), \
+                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
+                                ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_recv_local_real(source_pe, data):
+
+    h3oupf.h3oup_recv_local_real.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_float),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_recv_local_real.restype = ctypes.c_void_p
+    
+    data_len = len(data)
+
+    c_array = (ctypes.c_float * len(data))(*data)
+    h3oupf.h3oup_recv_local_real(ctypes.byref(ctypes.c_int32(source_pe)), \
+                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
+                                 ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
+def h3ou_recv_local_double(source_pe, data):
+
+    h3oupf.h3oup_recv_local_real.argtypes = [
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_double),
+        ctypes.POINTER(ctypes.c_int32)
+        ]
+    h3oupf.h3oup_recv_local_double.restype = ctypes.c_void_p
+    
+    data_len = len(data)
+
+    c_array = (ctypes.c_double * len(data))(*data)
+    h3oupf.h3oup_recv_local_double(ctypes.byref(ctypes.c_int32(source_pe)), \
+                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
+                                   ctypes.byref(ctypes.c_int32(data_len)))
+    return list(c_array)
+    
 def h3ou_send_scalar(target_name, val):
 
     h3oupf.h3oup_send_int_scalar.argtypes = [
@@ -656,6 +1135,10 @@ def h3ou_send_scalar(target_name, val):
     else:
         h3oupf.h3oup_send_double_scalar(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_double(val)))
             
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
 #=======+=========+=========+=========+=========+=========+=========+=========+
 
 def h3ou_recv_scalar(target_name, val):
@@ -792,306 +1275,4 @@ def h3ou_recv_array(target_name, val):
                                       ctypes.byref(ctypes.c_int32(array_len)))
         return list(c_array)
             
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_send_model_int(target_name, target_pe, data):
-
-    h3oupf.h3oup_send_model_int.argtypes = [
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_send_model_int.restype = ctypes.c_void_p
-    
-    comp_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
-    comp_len = len(target_name)
-    data_len = len(data)
-
-    c_array = (ctypes.c_int32 * len(data))(*data)
-    h3oupf.h3oup_send_model_int(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(target_pe)), \
-                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
-                                ctypes.byref(ctypes.c_int32(data_len)))
-
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_send_model_real(target_name, target_pe, data):
-
-    h3oupf.h3oup_send_model_real.argtypes = [
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_float),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_send_model_real.restype = ctypes.c_void_p
-    
-    c_array = (ctypes.c_float * len(data))(*data)
-    h3oupf.h3oup_send_model_real(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(target_pe)), \
-                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
-                                 ctypes.byref(ctypes.c_int32(data_len)))
-     
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_send_model_double(target_name, target_pe, data):
-
-    h3oupf.h3oup_send_model_double.argtypes = [
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_double),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_send_model_double.restype = ctypes.c_void_p
-
-    comp_str = ctypes.create_string_buffer(target_name.encode("utf-8"))
-    comp_len = len(target_name)
-    data_len = len(data)
-
-    c_array = (ctypes.c_double * len(data))(*data)
-    h3oupf.h3oup_send_model_double(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(target_pe)), \
-                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
-                                   ctypes.byref(ctypes.c_int32(data_len)))
-    
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_recv_model_int(source_name, source_pe, data):
-
-    h3oupf.h3oup_recv_model_int.argtypes = [
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_recv_model_int.restype = ctypes.c_void_p
-    
-    comp_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
-    comp_len = len(source_name)
-    data_len = len(data)
-
-    c_array = (ctypes.c_int32 * len(data))(*data)
-    h3oupf.h3oup_recv_model_int(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(source_pe)), \
-                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
-                                ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_recv_model_real(source_name, source_pe, data):
-
-    h3oupf.h3oup_recv_model_real.argtypes = [
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_float),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_recv_model_real.restype = ctypes.c_void_p
-    
-    comp_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
-    comp_len = len(source_name)
-    data_len = len(data)
-
-    c_array = (ctypes.c_float * len(data))(*data)
-    h3oupf.h3oup_recv_model_real(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(source_pe)), \
-                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
-                                 ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_recv_model_double(source_name, source_pe, data):
-
-    h3oupf.h3oup_recv_model_double.argtypes = [
-        ctypes.POINTER(ctypes.c_char),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_double),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_recv_model_double.restype = ctypes.c_void_p
-    
-    comp_str = ctypes.create_string_buffer(source_name.encode("utf-8"))
-    comp_len = len(source_name)
-    data_len = len(data)
-
-    c_array = (ctypes.c_double * len(data))(*data)
-    h3oupf.h3oup_recv_model_double(comp_str, ctypes.byref(ctypes.c_int32(comp_len)), ctypes.byref(ctypes.c_int32(source_pe)), \
-                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
-                                   ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_bcast_local_int(source_pe, data):
-    h3oupf.h3oup_bcast_local_int.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_bcast_local_int.restype = ctypes.c_void_p
-
-    data_len = len(data)
-
-    c_array = (ctypes.c_int * len(data))(*data)
-
-    h3oupf.h3oup_bcast_local_int(ctypes.byref(ctypes.c_int32(source_pe)), \
-                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
-                                 ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_bcast_local_real(source_pe, data):
-    h3oupf.h3oup_bcast_local_int.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_float),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_bcast_local_real.restype = ctypes.c_void_p
-
-    data_len = len(data)
-
-    c_array = (ctypes.c_float * len(data))(*data)
-
-    h3oupf.h3oup_bcast_local_real(ctypes.byref(ctypes.c_int32(source_pe)), \
-                                  ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
-                                  ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_bcast_local_double(source_pe, data):
-    h3oupf.h3oup_bcast_local_int.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_double),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_bcast_local_double.restype = ctypes.c_void_p
-
-    data_len = len(data)
-
-    c_array = (ctypes.c_double * len(data))(*data)
-
-    h3oupf.h3oup_bcast_local_int(ctypes.byref(ctypes.c_int32(source_pe)), \
-                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
-                                 ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_send_local_int(target_pe, data):
-
-    h3oupf.h3oup_send_local_int.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_send_local_int.restype = ctypes.c_void_p
-    
-    data_len = len(data)
-
-    c_array = (ctypes.c_int32 * len(data))(*data)
-    h3oupf.h3oup_send_local_int(ctypes.byref(ctypes.c_int32(target_pe)), \
-                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
-                                ctypes.byref(ctypes.c_int32(data_len)))
-
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_send_local_real(target_pe, data):
-
-    h3oupf.h3oup_send_local_real.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_float),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_send_local_real.restype = ctypes.c_void_p
-    
-    data_len = len(data)
-
-    c_array = (ctypes.c_float * len(data))(*data)
-    h3oupf.h3oup_send_local_real(ctypes.byref(ctypes.c_int32(target_pe)), \
-                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
-                                 ctypes.byref(ctypes.c_int32(data_len)))
-
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_send_local_double(target_pe, data):
-
-    h3oupf.h3oup_send_local_double.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_double),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_send_local_double.restype = ctypes.c_void_p
-    
-    data_len = len(data)
-
-    c_array = (ctypes.c_double * len(data))(*data)
-    h3oupf.h3oup_send_local_double(ctypes.byref(ctypes.c_int32(target_pe)), \
-                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
-                                   ctypes.byref(ctypes.c_int32(data_len)))
-
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_recv_local_int(source_pe, data):
-
-    h3oupf.h3oup_recv_local_int.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_recv_local_int.restype = ctypes.c_void_p
-    
-    data_len = len(data)
-
-    c_array = (ctypes.c_int32 * len(data))(*data)
-    h3oupf.h3oup_recv_local_int(ctypes.byref(ctypes.c_int32(source_pe)), \
-                                ctypes.cast(c_array, ctypes.POINTER(ctypes.c_int)), \
-                                ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_recv_local_real(source_pe, data):
-
-    h3oupf.h3oup_recv_local_real.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_float),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_recv_local_real.restype = ctypes.c_void_p
-    
-    data_len = len(data)
-
-    c_array = (ctypes.c_float * len(data))(*data)
-    h3oupf.h3oup_recv_local_real(ctypes.byref(ctypes.c_int32(source_pe)), \
-                                 ctypes.cast(c_array, ctypes.POINTER(ctypes.c_float)), \
-                                 ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
-#=======+=========+=========+=========+=========+=========+=========+=========+
-
-def h3ou_recv_local_double(source_pe, data):
-
-    h3oupf.h3oup_recv_local_real.argtypes = [
-        ctypes.POINTER(ctypes.c_int32),
-        ctypes.POINTER(ctypes.c_double),
-        ctypes.POINTER(ctypes.c_int32)
-        ]
-    h3oupf.h3oup_recv_local_double.restype = ctypes.c_void_p
-    
-    data_len = len(data)
-
-    c_array = (ctypes.c_double * len(data))(*data)
-    h3oupf.h3oup_recv_local_double(ctypes.byref(ctypes.c_int32(source_pe)), \
-                                   ctypes.cast(c_array, ctypes.POINTER(ctypes.c_double)), \
-                                   ctypes.byref(ctypes.c_int32(data_len)))
-    return list(c_array)
-    
 #=======+=========+=========+=========+=========+=========+=========+=========+

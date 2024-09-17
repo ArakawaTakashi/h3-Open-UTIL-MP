@@ -58,6 +58,32 @@ void h3oup_init_simple(char * comp_name, int * name_len, char * log_level, int *
 
 void h3oup_end(void) ;
 
+void h3oup_bcast_global_int(char * source_name, int * name_len, int * data, int * array_size) ;
+
+void h3oup_bcast_global_real(char * source_name, int * name_len, float * data, int * array_size) ;
+
+void h3oup_bcast_global_double(char * source_name, int * name_len, double * data, int * array_size) ;
+
+void h3oup_bcast_model_int(char * source_name, int * source_len, char * target_name, int * target_len, int * data, int * array_size) ;
+
+void h3oup_bcast_model_real(char * source_name, int * source_len, char * target_name, int * target_len, float * data, int * array_size) ;
+
+void h3oup_bcast_model_double(char * source_name, int * source_len, char * target_name, int * target_len, double * data, int * array_size) ;
+
+void h3oup_send_model_int(char * target_name, int * name_len, int * target_pe, int * data, int * array_size) ;
+
+void h3oup_send_model_real(char * target_name, int * name_len, int * target_pe, float * data, int * array_size) ;
+
+void h3oup_send_model_double(char * target_name, int * name_len, int * target_pe, double * data, int * array_size) ;
+
+void h3oup_recv_model_int(char * source_name, int * name_len, int * source_pe, int * data, int * array_size) ; 
+
+void h3oup_recv_model_real(char * source_name, int * name_len, int * source_pe, float * data, int * array_size) ; 
+
+void h3oup_recv_model_double(char * source_name, int * name_len, int * source_pe, double * data, int * array_size) ; 
+
+
+
 void h3oup_send_int_scalar(char * target_name, int * name_len, int * val) ;
 
 void h3oup_send_real_scalar(char * target_name, int * name_len, float * val) ;
@@ -98,14 +124,3 @@ void h3oup_isend_waitall(void) ;
 
 void h3oup_irecv_waitall(void) ;
 
-void h3oup_send_model_int(char * target_name, int * name_len, int * target_pe, int * data, int * array_size) ;
-
-void h3oup_send_model_real(char * target_name, int * name_len, int * target_pe, float * data, int * array_size) ;
-
-void h3oup_send_model_double(char * target_name, int * name_len, int * target_pe, double * data, int * array_size) ;
-
-void h3oup_recv_model_int(char * source_name, int * name_len, int * source_pe, int * data, int * array_size) ; 
-
-void h3oup_recv_model_real(char * source_name, int * name_len, int * source_pe, float * data, int * array_size) ; 
-
-void h3oup_recv_model_double(char * source_name, int * name_len, int * source_pe, double * data, int * array_size) ; 

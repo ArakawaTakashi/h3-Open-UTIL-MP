@@ -84,24 +84,23 @@ module h3ou_api
   public :: h3ou_interpolation
 
   !---------------------------------------------------------------------------
-  public :: h3ou_send                      ! subroutine (target_comp, val)
-  public :: h3ou_recv                      ! subroutine (source_comp, val)
   public :: h3ou_end                       ! subroutine ()
-  public :: h3ou_isend_model_int           ! subroutine (target_name, target_pe, data)
-  public :: h3ou_isend_model_real          ! subroutine (target_name, target_pe, data)
-  public :: h3ou_isend_model_double        ! subroutine (target_name, target_pe, data)
-  public :: h3ou_irecv_model_int           ! subroutine (source_name, source_pe, data)
-  public :: h3ou_irecv_model_real          ! subroutine (source_name, source_pe, data)
-  public :: h3ou_irecv_model_double        ! subroutine (source_name, source_pe, data)
-  public :: h3ou_isend_waitall             ! subroutine ()
-  public :: h3ou_irecv_waitall             ! subroutine ()
+  public :: h3ou_bcast_global_string       ! subroutine (source_pe, str_data)
+  public :: h3ou_bcast_global_int          ! subroutine (source_pe, int_data)
+  public :: h3ou_bcast_global_real         ! subroutine (source_pe, real_data)
+  public :: h3ou_bcast_global_double       ! subroutine (source_pe, double_data)
+  public :: h3ou_bcast_global              ! subroutine (source_pe, data)
+  public :: h3ou_bcast_model_int           ! subroutine (source_name, target_name, data)
+  public :: h3ou_bcast_model_real          ! subroutine (source_name, target_name, data)
+  public :: h3ou_bcast_model_double        ! subroutine (source_name, target_name, data)
+  public :: h3ou_bcast_model               ! subroutine (source_name, target_name, data)
   public :: h3ou_send_model_int            ! subroutine (target_name, target_pe, data)
   public :: h3ou_send_model_real           ! subroutine (target_name, target_pe, data)
   public :: h3ou_send_model_double         ! subroutine (target_name, target_pe, data)
   public :: h3ou_recv_model_int            ! subroutine (source_name, source_pe, data)
   public :: h3ou_recv_model_real           ! subroutine (source_name, source_pe, data)
   public :: h3ou_recv_model_double         ! subroutine (source_name, source_pe, data)
-  public :: h3ou_send_model                ! subroutine (source_name, source_pe, data)
+  public :: h3ou_send_model                ! subroutine (target_name, target_pe, data)
   public :: h3ou_recv_model                ! subroutine (source_name, source_pe, data)
   public :: h3ou_bcast_local_int           ! subroutine (source_pe, data)
   public :: h3ou_bcast_local_real          ! subroutine (source_pe, data)
@@ -115,6 +114,16 @@ module h3ou_api
   public :: h3ou_recv_local_double         ! subroutine (source_pe, data)
   public :: h3ou_send_local_all            ! subroutine (target_pe, data)
   public :: h3ou_recv_local_all            ! subroutine (target_pe, data)
+  public :: h3ou_send                      ! subroutine (target_comp, val)
+  public :: h3ou_recv                      ! subroutine (source_comp, val)
+  public :: h3ou_isend_model_int           ! subroutine (target_name, target_pe, data)
+  public :: h3ou_isend_model_real          ! subroutine (target_name, target_pe, data)
+  public :: h3ou_isend_model_double        ! subroutine (target_name, target_pe, data)
+  public :: h3ou_irecv_model_int           ! subroutine (source_name, source_pe, data)
+  public :: h3ou_irecv_model_real          ! subroutine (source_name, source_pe, data)
+  public :: h3ou_irecv_model_double        ! subroutine (source_name, source_pe, data)
+  public :: h3ou_isend_waitall             ! subroutine ()
+  public :: h3ou_irecv_waitall             ! subroutine ()
   
 !--------------------------------   private  ---------------------------------!
   
@@ -126,6 +135,19 @@ module h3ou_api
      module procedure h3ou_get_data_1d, h3ou_get_data_25d
   end interface h3ou_get_data
 
+  interface h3ou_bcast_global
+     module procedure h3ou_bcast_global_string
+     module procedure h3ou_bcast_global_int
+     module procedure h3ou_bcast_global_real
+     module procedure h3ou_bcast_global_double
+  end interface h3ou_bcast_global
+
+  interface h3ou_bcast_model
+     module procedure h3ou_bcast_model_int
+     module procedure h3ou_bcast_model_real
+     module procedure h3ou_bcast_model_double
+  end interface h3ou_bcast_model
+  
   interface h3ou_send_array
      module procedure h3ou_send_array_str
      module procedure h3ou_send_array_int
@@ -1638,6 +1660,311 @@ subroutine h3ou_end()
 end subroutine h3ou_end
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+            Global Routines            +=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_global_string(source_name, str_data)
+  use jcup_interface, only : jcup_get_model_id
+  use jcup_mpi_lib, only : jml_GetLeaderRank, jml_BcastGlobal
+  implicit none
+  character(len=*), intent(IN)    :: source_name
+  character(len=*), intent(INOUT) :: str_data
+  integer :: model_id, source_pe
+
+  call jcup_get_model_id(trim(source_name), model_id)
+  
+  source_pe = jml_GetLeaderRank(model_id)
+
+  call jml_BcastGlobal(str_data, source_pe)
+
+end subroutine h3ou_bcast_global_string
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_global_int(source_name, data)
+  use jcup_interface, only : jcup_get_model_id
+  use jcup_mpi_lib, only : jml_GetLeaderRank, jml_BcastGlobal
+  implicit none
+  character(len=*), intent(IN)    :: source_name
+  integer, intent(INOUT) :: data(:)
+  integer :: model_id, source_pe
+
+  call jcup_get_model_id(trim(source_name), model_id)
+  
+  source_pe = jml_GetLeaderRank(model_id)
+
+  call jml_BcastGlobal(data, 1, size(data), source_pe)
+
+end subroutine h3ou_bcast_global_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_global_real(source_name, data)
+  use jcup_interface, only : jcup_get_model_id
+  use jcup_mpi_lib, only : jml_GetLeaderRank, jml_BcastGlobal
+  implicit none
+  character(len=*), intent(IN)    :: source_name
+  real(kind=4), intent(INOUT) :: data(:)
+  integer :: model_id, source_pe
+
+  call jcup_get_model_id(trim(source_name), model_id)
+  
+  source_pe = jml_GetLeaderRank(model_id)
+
+  call jml_BcastGlobal(data, 1, size(data), source_pe)
+
+end subroutine h3ou_bcast_global_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_global_double(source_name, data)
+  use jcup_interface, only : jcup_get_model_id
+  use jcup_mpi_lib, only : jml_GetLeaderRank, jml_BcastGlobal
+  implicit none
+  character(len=*), intent(IN)    :: source_name
+  real(kind=8), intent(INOUT) :: data(:)
+  integer :: model_id, source_pe
+
+  call jcup_get_model_id(trim(source_name), model_id)
+  
+  source_pe = jml_GetLeaderRank(model_id)
+
+  call jml_BcastGlobal(data, 1, size(data), source_pe)
+
+end subroutine h3ou_bcast_global_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+           Inter Model Routines        +=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_model_int(source_name, target_name, data)
+  use jcup_mpi_lib, only : jml_isLocalLeader, jml_BcastLocal, jml_SendLeader, jml_RecvLeader
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: source_name
+  character(len=*), intent(IN) :: target_name
+  integer, intent(INOUT)       :: data(:)
+  integer :: send_id, recv_id
+  
+  if (trim(source_name) == trim(my_name)) then
+     if (jml_isLocalLeader(my_id)) then
+        call jcup_get_model_id(trim(target_name), recv_id)
+        call jml_SendLeader(data, 1, size(data), recv_id-1)
+     end if
+     call jml_BcastLocal(my_id, data, 1, size(data))
+  end if
+     
+  if (trim(target_name) == trim(my_name)) then
+     if (jml_isLocalLeader(my_id)) then
+        call jcup_get_model_id(trim(source_name), send_id)
+        call jml_RecvLeader(data, 1, size(data), send_id-1)
+     end if
+     call jml_BcastLocal(my_id, data, 1, size(data))
+  end if
+  
+end subroutine h3ou_bcast_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_model_real(source_name, target_name, data)
+  use jcup_mpi_lib, only : jml_isLocalLeader, jml_BcastLocal, jml_SendLeader, jml_RecvLeader
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: source_name
+  character(len=*), intent(IN) :: target_name
+  real(kind=4), intent(INOUT)  :: data(:)
+  integer :: send_id, recv_id
+  
+  if (trim(source_name) == trim(my_name)) then
+     if (jml_isLocalLeader(my_id)) then
+        call jcup_get_model_id(trim(target_name), recv_id)
+        call jml_SendLeader(data, 1, size(data), recv_id-1)
+     end if
+     call jml_BcastLocal(my_id, data, 1, size(data))
+  end if
+     
+  if (trim(target_name) == trim(my_name)) then
+     if (jml_isLocalLeader(my_id)) then
+        call jcup_get_model_id(trim(source_name), send_id)
+        call jml_RecvLeader(data, 1, size(data), send_id-1)
+     end if
+     call jml_BcastLocal(my_id, data, 1, size(data))
+  end if
+  
+end subroutine h3ou_bcast_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_bcast_model_double(source_name, target_name, data)
+  use jcup_mpi_lib, only : jml_isLocalLeader, jml_BcastLocal, jml_SendLeader, jml_RecvLeader
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: source_name
+  character(len=*), intent(IN) :: target_name
+  real(kind=8), intent(INOUT)  :: data(:)
+  integer :: send_id, recv_id
+  
+  if (trim(source_name) == trim(my_name)) then
+     if (jml_isLocalLeader(my_id)) then
+        call jcup_get_model_id(trim(target_name), recv_id)
+        call jml_SendLeader(data, 1, size(data), recv_id-1)
+     end if
+     call jml_BcastLocal(my_id, data, 1, size(data))
+  end if
+     
+  if (trim(target_name) == trim(my_name)) then
+     if (jml_isLocalLeader(my_id)) then
+        call jcup_get_model_id(trim(source_name), send_id)
+        call jml_RecvLeader(data, 1, size(data), send_id-1)
+     end if
+     call jml_BcastLocal(my_id, data, 1, size(data))
+  end if
+  
+end subroutine h3ou_bcast_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_model_int(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  integer, target, intent(IN)  :: data(:)
+  integer :: target_id
+  integer, pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  call jml_send_waitall()
+  
+end subroutine h3ou_send_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_model_real(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  real(kind=4), target, intent(IN)  :: data(:)
+  integer :: target_id
+  real(kind=4), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  call jml_send_waitall()
+  
+end subroutine h3ou_send_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_send_model_double(target_name, target_pe, data)
+  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN) :: target_name
+  integer, intent(IN)          :: target_pe
+  real(kind=8), target, intent(IN)  :: data(:)
+  integer :: target_id
+  real(kind=8), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(target_name), target_id)
+
+  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
+  call jml_send_waitall()
+  
+end subroutine h3ou_send_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_model_int(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)   :: source_name
+  integer, intent(IN)            :: source_pe
+  integer, target, intent(INOUT) :: data(:)
+  integer :: source_id
+  integer, pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  call jml_recv_waitall()
+  
+end subroutine h3ou_recv_model_int
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_model_real(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)          :: source_name
+  integer, intent(IN)                  :: source_pe
+  real(kind=4), target, intent(INOUt)  :: data(:)
+  integer :: source_id
+  real(kind=4), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  call jml_recv_waitall()
+  
+end subroutine h3ou_recv_model_real
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+subroutine h3ou_recv_model_double(source_name, source_pe, data)
+  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
+  use jcup_interface, only : jcup_get_model_id
+  implicit none
+  character(len=*), intent(IN)          :: source_name
+  integer, intent(IN)                  :: source_pe
+  real(kind=8), target, intent(INOUt)  :: data(:)
+  integer :: source_id
+  real(kind=8), pointer :: data_ptr
+
+  data_ptr => data(1)
+  
+  call jcup_get_model_id(trim(source_name), source_id)
+
+  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
+  call jml_recv_waitall()
+  
+end subroutine h3ou_recv_model_double
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
 
 subroutine h3ou_send_int_scalar(target_name, val)
   implicit none
@@ -1866,134 +2193,6 @@ subroutine h3ou_irecv_waitall()
 
 end subroutine h3ou_irecv_waitall
 
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
-!=======+=========+=========+=========+=========+=========+=========+=========+
-!=======+=========+=========+=========+=========+=========+=========+=========+
-
-subroutine h3ou_send_model_int(target_name, target_pe, data)
-  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
-  use jcup_interface, only : jcup_get_model_id
-  implicit none
-  character(len=*), intent(IN) :: target_name
-  integer, intent(IN)          :: target_pe
-  integer, target, intent(IN)  :: data(:)
-  integer :: target_id
-  integer, pointer :: data_ptr
-
-  data_ptr => data(1)
-  
-  call jcup_get_model_id(trim(target_name), target_id)
-
-  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
-  call jml_send_waitall()
-  
-end subroutine h3ou_send_model_int
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
-
-subroutine h3ou_send_model_real(target_name, target_pe, data)
-  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
-  use jcup_interface, only : jcup_get_model_id
-  implicit none
-  character(len=*), intent(IN) :: target_name
-  integer, intent(IN)          :: target_pe
-  real(kind=4), target, intent(IN)  :: data(:)
-  integer :: target_id
-  real(kind=4), pointer :: data_ptr
-
-  data_ptr => data(1)
-  
-  call jcup_get_model_id(trim(target_name), target_id)
-
-  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
-  call jml_send_waitall()
-  
-end subroutine h3ou_send_model_real
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
-
-subroutine h3ou_send_model_double(target_name, target_pe, data)
-  use jcup_mpi_lib, only : jml_ISendModel, jml_send_waitall
-  use jcup_interface, only : jcup_get_model_id
-  implicit none
-  character(len=*), intent(IN) :: target_name
-  integer, intent(IN)          :: target_pe
-  real(kind=8), target, intent(IN)  :: data(:)
-  integer :: target_id
-  real(kind=8), pointer :: data_ptr
-
-  data_ptr => data(1)
-  
-  call jcup_get_model_id(trim(target_name), target_id)
-
-  call jml_ISendModel(my_id, data_ptr, 1, size(data), target_id, target_pe)
-  call jml_send_waitall()
-  
-end subroutine h3ou_send_model_double
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
-
-subroutine h3ou_recv_model_int(source_name, source_pe, data)
-  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
-  use jcup_interface, only : jcup_get_model_id
-  implicit none
-  character(len=*), intent(IN)   :: source_name
-  integer, intent(IN)            :: source_pe
-  integer, target, intent(INOUT) :: data(:)
-  integer :: source_id
-  integer, pointer :: data_ptr
-
-  data_ptr => data(1)
-  
-  call jcup_get_model_id(trim(source_name), source_id)
-
-  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
-  call jml_recv_waitall()
-  
-end subroutine h3ou_recv_model_int
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
-
-subroutine h3ou_recv_model_real(source_name, source_pe, data)
-  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
-  use jcup_interface, only : jcup_get_model_id
-  implicit none
-  character(len=*), intent(IN)          :: source_name
-  integer, intent(IN)                  :: source_pe
-  real(kind=4), target, intent(INOUt)  :: data(:)
-  integer :: source_id
-  real(kind=4), pointer :: data_ptr
-
-  data_ptr => data(1)
-  
-  call jcup_get_model_id(trim(source_name), source_id)
-
-  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
-  call jml_recv_waitall()
-  
-end subroutine h3ou_recv_model_real
-
-!=======+=========+=========+=========+=========+=========+=========+=========+
-
-subroutine h3ou_recv_model_double(source_name, source_pe, data)
-  use jcup_mpi_lib, only : jml_IRecvModel, jml_recv_waitall
-  use jcup_interface, only : jcup_get_model_id
-  implicit none
-  character(len=*), intent(IN)          :: source_name
-  integer, intent(IN)                  :: source_pe
-  real(kind=8), target, intent(INOUt)  :: data(:)
-  integer :: source_id
-  real(kind=8), pointer :: data_ptr
-
-  data_ptr => data(1)
-  
-  call jcup_get_model_id(trim(source_name), source_id)
-
-  call jml_IRecvModel(my_id, data_ptr, 1, size(data), source_id, source_pe)
-  call jml_recv_waitall()
-  
-end subroutine h3ou_recv_model_double
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 !=======+=========+=========+=========+=========+=========+=========+=========+
