@@ -43,7 +43,7 @@ program compB
 
   target_array_int = 0
   call h3ou_bcast_model("compA", "compB", target_array_int)
-  write(0, *) "compB bcast_model, ", target_array_int
+  write(0, *) "compB bcast model, ", target_array_int
   
   ! send/recv model
 

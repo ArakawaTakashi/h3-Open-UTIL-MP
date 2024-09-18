@@ -2,7 +2,13 @@
 
 void h3ouc_init(char * my_name, char * config_file_name) ; 
 
-void h3ouc_get_mpi_parameter(char * my_name, int * my_comm, int * my_group, int * my_size, int * my_rank);
+void h3ouc_get_mpi_parameter(char * my_name, MPI_Comm * my_comm, int * my_group, int * my_size, int * my_rank);
+
+MPI_Comm h3ouc_get_my_comm(void) ;
+
+int  h3ouc_get_my_rank(void) ;
+
+int  h3ouc_get_my_size(void) ;
 
 void h3ouc_def_grid(int * grid_index, int ngrid, char * comp_name, char * grid_name, int nz);
 

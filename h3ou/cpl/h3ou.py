@@ -38,6 +38,16 @@ def h3ou_init(comp_name, config_file_name):
     
 #=======+=========+=========+=========+=========+=========+=========+=========+
 
+def h3ou_get_my_comm():
+
+    h3oupf.h3oup_get_my_comm.argtypes = [
+        ]
+    h3oupf.h3oup_get_my_comm.restype = ctypes.c_int32
+
+    return int(h3oupf.h3oup_get_my_comm())
+
+#=======+=========+=========+=========+=========+=========+=========+=========+
+
 def h3ou_get_my_rank():
 
     h3oupf.h3oup_get_my_rank.argtypes = [

@@ -1,3 +1,4 @@
+#include "mpi.h"
 #include "h3ouc.h"
 #include "h3oup.h"
 #include <string.h>
@@ -16,11 +17,42 @@ void h3ouc_init(char *my_name, char * config_file_name) {
 
 //------------------------------------------------------------------------------------------------
 
-void h3ouc_get_mpi_parameter(char * my_name, int * my_comm, int * my_group, int * my_size, int * my_rank) {
+void h3ouc_get_mpi_parameter(char * my_name, MPI_Comm * my_comm, int * my_group, int * my_size, int * my_rank) {
   int name_len = strlen(my_name) ; 
-  h3oup_get_mpi_parameter(my_name, &name_len, my_comm, my_group, my_size, my_rank) ;
+  int my_comm_fortran ;
+  
+  h3oup_get_mpi_parameter(my_name, &name_len, & my_comm_fortran, my_group, my_size, my_rank) ;
+
+  * my_comm = MPI_Comm_f2c(my_comm_fortran) ; 
+  
 }
 
+
+//------------------------------------------------------------------------------------------------
+
+MPI_Comm h3ouc_get_my_comm(void) {
+  int my_comm_fortran ;
+
+  my_comm_fortran = h3oup_get_my_comm() ;
+
+  return MPI_Comm_f2c(my_comm_fortran) ;
+}
+
+//------------------------------------------------------------------------------------------------
+
+int h3ouc_get_my_rank(void) {
+
+  return h3oup_get_my_rank() ; 
+
+}
+
+//------------------------------------------------------------------------------------------------
+
+int h3ouc_get_my_size(void) {
+
+  return h3oup_get_my_size() ; 
+
+}
 
 //------------------------------------------------------------------------------------------------
 

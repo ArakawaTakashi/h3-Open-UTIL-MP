@@ -4,7 +4,6 @@
 
 int main(void) {
   char * my_name = "compC" ;
-  int    my_comm, my_group, my_size, my_rank ;  
   int    array_size = 10 ;
   int    my_array_int[array_size] ;
   float  my_array_float[array_size] ;
@@ -17,7 +16,9 @@ int main(void) {
   h3ouc_init(my_name, "coupling.conf") ;
 
   // get mpi parameters
-  h3ouc_get_mpi_parameter(my_name, & my_comm, & my_group, & my_size, & my_rank) ; 
+
+  int my_rank = h3ouc_get_my_rank() ;
+  int my_size = h3ouc_get_my_size() ; 
   
   printf("compC my_size = %d, my_rank = %d\n", my_size, my_rank) ;
 
@@ -48,7 +49,7 @@ int main(void) {
   h3ouc_bcast_model_float("compC", "compD", my_array_float, array_size) ;
   h3ouc_bcast_model_double("compD", "compC", target_array_double, array_size) ;
   for (int i = 0 ; i < array_size ; i++) {
-     printf("bcast_model, target array = %lf\n", target_array_double[i]) ;
+     printf("bcast model, target array = %lf\n", target_array_double[i]) ;
   }
   
   // send/recv model
@@ -58,6 +59,34 @@ int main(void) {
     h3ouc_recv_model_double("compD", 0, target_array_double, array_size) ;
     for (int i = 0 ; i < array_size ; i++) {
       printf("compC send/recv model array = %lf\n", target_array_double[i]) ;
+    }
+  }
+
+  // bcast local
+  
+  MPI_Comm my_comm = h3ouc_get_my_comm() ;
+
+  if (my_rank == 0) {
+    MPI_Bcast(my_array_int, array_size, MPI_INT, 0, my_comm) ;
+  } else {
+    MPI_Bcast(target_array_int, array_size, MPI_INT, 0, my_comm) ;
+    for (int i = 0 ; i < array_size ; i++) {
+      printf("compC bcast local array = %d\n", target_array_int[i]) ;
+    }
+  }
+
+  // send/recv local
+
+  if (my_size > 1) {
+    if (my_rank == 0) {
+      MPI_Send(my_array_float, array_size, MPI_FLOAT, 1, 0, my_comm) ;
+    }
+    if (my_rank == 1){
+      MPI_Status status ; 
+      MPI_Recv(target_array_float, array_size, MPI_FLOAT, 0, 0, my_comm, & status) ; 
+      for (int i = 0 ; i < array_size ; i++) {
+	printf("compC send/recv local array = %f\n", target_array_float[i]) ;
+      }
     }
   }
   

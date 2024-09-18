@@ -45,7 +45,7 @@ print("bcast from compC = ", target_array)
 
 target_array = h3opp.h3ou_bcast_model_real("compC", "compD", target_array_real)
 
-print("compD bcast_model from compC = ", target_array)
+print("compD bcast model from compC = ", target_array)
 
 target_array = h3opp.h3ou_bcast_model_double("compD", "compC", my_array_double)
 

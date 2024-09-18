@@ -38,6 +38,7 @@ module h3ou_api
   public :: h3ou_is_coupled                ! logical function()
   public :: h3ou_get_couple_id             ! integer function ()
   public :: h3ou_get_mpi_parameter         ! subroutine (comp_name, comm, group, size, rank)
+  public :: h3ou_get_my_comm               ! integer function ()
   public :: h3ou_get_my_rank               ! integer function ()
   public :: h3ou_get_my_size               ! integer function ()
   public :: h3ou_is_local_leader           ! logical function ()
@@ -412,6 +413,15 @@ subroutine h3ou_get_mpi_parameter(comp_name, comm, group, size, rank)
   call get_local_mpi_param(comm, group, size, rank)
 
 end subroutine h3ou_get_mpi_parameter
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+integer function h3ou_get_my_comm()
+  implicit none
+
+  h3ou_get_my_comm = local_comm
+
+end function h3ou_get_my_comm
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
@@ -2196,6 +2206,12 @@ end subroutine h3ou_irecv_waitall
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 !=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+              Local Routines           +=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
 subroutine h3ou_bcast_local_int(source_pe, data)
@@ -2257,7 +2273,6 @@ subroutine h3ou_send_local_real(target_pe, data)
   call jml_SendLocal(my_id, data, 1, size(data), target_pe)
 
 end subroutine h3ou_send_local_real
-
   
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
@@ -2307,6 +2322,8 @@ subroutine h3ou_recv_local_double(source_pe, data)
 
 end subroutine h3ou_recv_local_double
   
+!=======+=========+=========+=========+=========+=========+=========+=========+
+!=======+=========+=========+=========+=========+=========+=========+=========+
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
 end module h3ou_api

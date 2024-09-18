@@ -2,6 +2,12 @@ void h3oup_init(char * my_name, int * name_len, char * config_file_name, int * c
 
 void h3oup_get_mpi_parameter(char * my_name, int * name_len, int * my_comm, int * my_group, int * my_size, int * my_rank);
 
+int  h3oup_get_my_comm(void) ;
+
+int  h3oup_get_my_rank(void) ;
+
+int  h3oup_get_my_size(void) ;
+
 void h3oup_def_grid(int * grid_index, int * ngrid, char * comp_name, int * comp_name_len, char * grid_name, int * grid_name_len, int * nz);
 
 void h3oup_end_grid_def(void) ;

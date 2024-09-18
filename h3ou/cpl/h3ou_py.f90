@@ -37,6 +37,16 @@ end subroutine h3oup_get_mpi_parameter
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
+integer function h3oup_get_my_comm() bind(C)
+  use h3ou_api, only : h3ou_get_my_comm
+  implicit none
+
+  h3oup_get_my_comm = h3ou_get_my_comm()
+
+end function h3oup_get_my_comm
+
+!=======+=========+=========+=========+=========+=========+=========+=========+
+
 integer function h3oup_get_my_rank() bind(C)
   use h3ou_api, only : h3ou_get_my_rank
   implicit none
