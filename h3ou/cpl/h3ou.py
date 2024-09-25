@@ -546,7 +546,8 @@ def h3ou_get_data_1d(var_name, data):
         ctypes.POINTER(ctypes.c_int32)            # recv flag
         ]
 
-    h3oupf.h3oup_get_data_1d.restype = ctypes.c_void_p
+    #h3oupf.h3oup_get_data_1d.restype = ctypes.c_void_p
+    h3oupf.h3oup_get_data_1d.restype = ctypes.c_int32
 
     varname_buffer = get_string_buffer(var_name)
     varstr_len     = get_strlen_ptr(var_name)
@@ -556,7 +557,7 @@ def h3ou_get_data_1d(var_name, data):
     is_get_ok = True
     ok_flag    = 1
     
-    h3oupf.h3oup_get_data_1d(varname_buffer, varstr_len, data, dlen_ptr, \
+    ok_flag = h3oupf.h3oup_get_data_1d(varname_buffer, varstr_len, data, dlen_ptr, \
                              ctypes.byref(ctypes.c_int32(ok_flag)))
 
     if (ok_flag == 0):
@@ -579,7 +580,7 @@ def h3ou_get_data_25d(var_name, data):
         ctypes.POINTER(ctypes.c_int32)            # recv flag
         ]
 
-    h3oupf.h3oup_get_data_25d.restype = ctypes.c_void_p
+    h3oupf.h3oup_get_data_25d.restype = ctypes.c_int32
 
     varname_buffer = get_string_buffer(var_name)
     varstr_len     = get_strlen_ptr(var_name)
@@ -591,8 +592,8 @@ def h3ou_get_data_25d(var_name, data):
     is_get_ok = True
     ok_flag    = 1
     
-    h3oupf.h3oup_get_data_25d(varname_buffer, varstr_len, data, dlen_ptr1, dlen_ptr2, \
-                              ctypes.byref(ctypes.c_int32(ok_flag)))
+    ok_flag = h3oupf.h3oup_get_data_25d(varname_buffer, varstr_len, data, dlen_ptr1, dlen_ptr2, \
+                                        ctypes.byref(ctypes.c_int32(ok_flag)))
 
     if (ok_flag == 0):
         is_get_ok = False

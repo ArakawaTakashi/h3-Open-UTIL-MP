@@ -36,9 +36,9 @@ void h3oup_put_data_1d(char * data_name, int * name_len, double * data, int * da
 
 void h3oup_put_data_25d(char * data_name, int * name_len, double * data, int * data_len1, int * data_len2) ;
 
-void h3oup_get_data_1d(char * data_name, int * name_len, double * data, int * data_len, int * is_get_ok) ;
+int  h3oup_get_data_1d(char * data_name, int * name_len, double * data, int * data_len, int * is_get_ok) ;
 
-void h3oup_get_data_25d(char * data_name, int * name_len, double * data, int * data_len1, int * data_len2, int * is_get_ok) ;
+int  h3oup_get_data_25d(char * data_name, int * name_len, double * data, int * data_len1, int * data_len2, int * is_get_ok) ;
 
 void h3oup_get_num_of_put_data(int * num_of_data) ;
 

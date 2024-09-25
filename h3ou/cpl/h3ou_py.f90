@@ -378,7 +378,7 @@ end subroutine h3oup_put_data_25d
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
-subroutine h3oup_get_data_1d(data_name, name_len, data, data_len, is_recv_ok) bind(C)
+integer function  h3oup_get_data_1d(data_name, name_len, data, data_len, is_recv_ok) bind(C)
   use h3ou_py_base, only : get_char_str
   use h3ou_api, only : h3ou_get_data_1d
   implicit none
@@ -397,11 +397,13 @@ subroutine h3oup_get_data_1d(data_name, name_len, data, data_len, is_recv_ok) bi
      is_recv_ok = 0
   end if
 
-end subroutine h3oup_get_data_1d
+  h3oup_get_data_1d = is_recv_ok
+  
+end function  h3oup_get_data_1d
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
-subroutine h3oup_get_data_25d(data_name, name_len, data, data_len1, data_len2, is_recv_ok) bind(C)
+integer function h3oup_get_data_25d(data_name, name_len, data, data_len1, data_len2, is_recv_ok) bind(C)
   use h3ou_py_base, only : get_char_str
   use h3ou_api, only : h3ou_get_data_25d
   implicit none
@@ -426,9 +428,9 @@ subroutine h3oup_get_data_25d(data_name, name_len, data, data_len1, data_len2, i
      is_recv_ok = 0
   end if
 
-  return
+  h3oup_get_data_25d = is_recv_ok
   
-end subroutine h3oup_get_data_25d
+end function h3oup_get_data_25d
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
@@ -438,7 +440,7 @@ subroutine h3oup_coupling_end(time_array, nsize) bind(C)
   integer, intent(IN) :: nsize
   integer, intent(IN) :: time_array(nsize)
 
-  call h3ou_coupling_end(time_array, .false.)
+  call h3ou_coupling_end(time_array, .true.)
 
 end subroutine h3oup_coupling_end
 
