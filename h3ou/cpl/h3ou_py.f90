@@ -434,14 +434,19 @@ end function h3oup_get_data_25d
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
-subroutine h3oup_coupling_end(time_array, nsize) bind(C)
+subroutine h3oup_coupling_end(time_array, nsize, is_call_finalize) bind(C)
   use h3ou_api, only : h3ou_coupling_end
   implicit none
   integer, intent(IN) :: nsize
   integer, intent(IN) :: time_array(nsize)
+  integer, intent(IN) :: is_call_finalize
 
-  call h3ou_coupling_end(time_array, .true.)
-
+  if (is_call_finalize == 0) then
+    call h3ou_coupling_end(time_array, .false.)
+  else
+    call h3ou_coupling_end(time_array, .true.)
+  end if
+  
 end subroutine h3oup_coupling_end
 
 !=======+=========+=========+=========+=========+=========+=========+=========+

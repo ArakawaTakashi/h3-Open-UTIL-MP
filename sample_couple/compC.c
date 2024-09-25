@@ -71,7 +71,7 @@ int main(void) {
     
   }
 
-  h3ouc_coupling_end(time_array) ;
+  h3ouc_coupling_end(time_array, 1) ;
 
   return 0 ; 
 

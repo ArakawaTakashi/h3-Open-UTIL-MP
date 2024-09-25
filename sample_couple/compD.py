@@ -43,7 +43,6 @@ time_array = np.array([init_time.year, init_time.month, init_time.day, init_time
 
 h3opp.h3ou_init_time(time_array)
 
-
 my_array_int    = np.arange(1, array_size + 1, dtype = np.int32)
 my_array_real   = np.arange(1, array_size + 1, dtype = np.float32)
 my_array_double = np.arange(1, array_size + 1, dtype = np.float64)
@@ -62,8 +61,8 @@ for t in range(24):
 
     is_ok = h3opp.h3ou_get_data_1d("compA_var3", target_array_double)
 
-    if (is_ok):
-        print("get compA_var3 ", is_ok, target_array_double)
+    #if (is_ok):
+    #    print("get compA_var3 ", is_ok, target_array_double)
 
     target_array_double[:] = 0.0
     

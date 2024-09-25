@@ -610,13 +610,16 @@ def h3ou_coupling_end(time_array):
     h3oupf.h3oup_coupling_end.argtypes = [
         np.ctypeslib.ndpointer(dtype=np.int32), # time array
         ctypes.POINTER(ctypes.c_int32),         # size of time array
+        ctypes.POINTER(ctypes.c_int32)          # call mpi_finalize or not
         ]
     h3oupf.h3oup_coupling_end.restype = ctypes.c_void_p
 
     array_len      = len(time_array)
     glen_ptr      = ctypes.byref(ctypes.c_int32(array_len))
 
-    h3oupf.h3oup_coupling_end(time_array, glen_ptr)
+    finalize_flag = 1
+    
+    h3oupf.h3oup_coupling_end(time_array, glen_ptr, ctypes.byref(ctypes.c_int32(finalize_flag)))
 
 #=======+=========+=========+=========+=========+=========+=========+=========+
 #=======+=========+=========+=========+=========+=========+=========+=========+

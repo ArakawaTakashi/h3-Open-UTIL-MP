@@ -71,16 +71,16 @@ program compA
      allocate(coef(1))
   end if
 
-  !call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compB", "compB_grid1", 1, &
-  !     send_index, recv_index, coef)
+  call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compB", "compB_grid1", 1, &
+       send_index, recv_index, coef)
   
-  !call h3ou_set_interpolation_table("compA", "compB", "compB_grid1", "compA", "compA_grid1", 1)
+  call h3ou_set_interpolation_table("compA", "compB", "compB_grid1", "compA", "compA_grid1", 1)
   
-  !call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compC", "compC_grid1", 1, &
-  !     send_index, recv_index, coef)
+  call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compC", "compC_grid1", 1, &
+       send_index, recv_index, coef)
 
-  !call h3ou_set_interpolation_table("compA", "compC", "compC_grid1", "compA", "compA_grid1", 1, &
-  !     send_index, recv_index, coef)
+  call h3ou_set_interpolation_table("compA", "compC", "compC_grid1", "compA", "compA_grid1", 1, &
+       send_index, recv_index, coef)
 
   call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compD", "compD_grid1", 1, &
        send_index, recv_index, coef)
@@ -98,19 +98,19 @@ program compA
   end do
 
 
-  !call h3ou_put_data("compA_var1", my_array_double)
-  !call h3ou_put_data("compA_var2", my_array_double)
+  call h3ou_put_data("compA_var1", my_array_double)
+  call h3ou_put_data("compA_var2", my_array_double)
   call h3ou_put_data("compA_var3", my_array_double)
 
   do t = 1, 24
      call h3ou_set_time(my_name, time_array, delta_t)
 
-     !call h3ou_get_data("compB_var1", target_array_double, is_recv_ok = is_get_ok)
-     !call h3ou_get_data("compC_var1", target_array_double, is_recv_ok = is_get_ok)
+     call h3ou_get_data("compB_var1", target_array_double, is_recv_ok = is_get_ok)
+     call h3ou_get_data("compC_var1", target_array_double, is_recv_ok = is_get_ok)
      call h3ou_get_data("compD_var1", target_array_double, is_recv_ok = is_get_ok)
 
-     !call h3ou_put_data("compA_var1", my_array_double)
-     !call h3ou_put_data("compA_var2", my_array_double)
+     call h3ou_put_data("compA_var1", my_array_double)
+     call h3ou_put_data("compA_var2", my_array_double)
      call h3ou_put_data("compA_var3", my_array_double)
 
      call h3ou_inc_time(time_array, delta_t)

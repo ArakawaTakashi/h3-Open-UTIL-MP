@@ -49,7 +49,7 @@ void h3ouc_send_array_double(char * my_comp_name, char * recv_comp_name, double 
 
 void h3ouc_recv_array_double(char * my_comp_name, char * send_comp_name, double * array, int array_size) ;
 
-void h3ouc_coupling_end(int * time_array) ; 
+void h3ouc_coupling_end(int * time_array, int is_call_finalize) ; 
 
 void h3ouc_inc_calendar(int * time_array, int delta_t) ; 
 

@@ -56,7 +56,7 @@ void h3oup_send_array_double(char * my_comp_name, int * my_name_len, char * recv
 
 void h3oup_recv_array_double(char * my_comp_name, int * my_name_len, char * send_comp_name, int * send_name_len, double * array, int * array_size) ; 
 
-void h3oup_coupling_end(int * time_array, int * nsize) ;
+void h3oup_coupling_end(int * time_array, int * nsize, int * finalize_flag) ;
 
 void h3oup_inc_calendar(int * time_array, int * nsize, int * delta_t)  ; 
 
