@@ -1663,9 +1663,18 @@ end subroutine h3ou_recv_array_dbl_2
 
 
 subroutine h3ou_end()
+  use palmtime, only : palm_TimeFinalize
+  use mod_utils, only : put_log, close_log_file
   implicit none
 
+  call put_log(">>>>>>>>>>>>>>> h3ou_coupling_end IN")
+  call palm_TimeFinalize()  ! not output TM* files
+
   call mpi_finalize(ierror)
+
+  call put_log("<<<<<<<<<<<<<<< h3ou_coupling_end OUT")
+
+  call close_log_file()
 
 end subroutine h3ou_end
 

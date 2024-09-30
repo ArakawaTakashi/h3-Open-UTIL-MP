@@ -183,7 +183,7 @@ module jcup_mpi_lib
 
   interface jml_SendLocal
     module procedure jml_send_int_1d_local, jml_send_int_2d_local, jml_send_int_3d_local
-    module procedure jml_sen_real_id_local, jml_send_real_2d_local, jml_send_real_3d_local
+    module procedure jml_send_real_1d_local, jml_send_real_2d_local, jml_send_real_3d_local
     module procedure jml_send_double_1d_local, jml_send_double_2d_local, jml_send_double_3d_local
   end interface
 
@@ -2205,7 +2205,7 @@ subroutine jml_recv_real_1d_leader(data,is,ie,source,tag)
 
   source_rank = leader_pe(source)
   
-  call impi_irecv(buffer,ie-is+1,IMPI_REAL,source_rank,MPI_TAG,leader%impi_comm,request,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_FLOAT,source_rank,MPI_TAG,leader%impi_comm,request,ierror)
   call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
@@ -3224,7 +3224,7 @@ subroutine jml_isend_real_1d_model(comp, data,is,ie,dest_model,dest_pe, exchange
   if (dest_rank == jml_GetMyrankModel(comp, dest_model)) then !local(comp)%my_rank) then
     !write(0,*) "mpi_IBsend called ", comp, dest_model, dest_pe, exchange_tag
     call check_buffer_size(data_size)
-    call MPI_BSEND(data,data_size,MPI_SINGLE_PRECISION,dest_rank,tag,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
+    call MPI_BSEND(data,data_size,MPI_REAL,dest_rank,tag,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
     isend_counter = isend_counter + 1
 

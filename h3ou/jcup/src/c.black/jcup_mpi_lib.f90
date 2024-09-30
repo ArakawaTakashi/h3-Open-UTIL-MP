@@ -5,18 +5,17 @@
 module jcup_mpi_lib
   use mpi
   implicit none
-
   private
-
+  include "../impi/impif.h"
   !--------------------------------   public  ----------------------------------!
 
   integer,public :: JML_ROOTS_TAG = 120
   integer,public :: JML_ANY_SOURCE = MPI_ANY_SOURCE
 
-  public :: jml_set_global_comm   ! subroutine (global_comm)
-  public :: jml_get_global_comm   ! integer function () 
-  public :: jml_init              ! subroutine (isCallInit)
-  public :: jml_create_communicator
+  public :: jml_set_global_comm       ! subroutine (global_comm)
+  public :: jml_get_global_comm       ! integer function () 
+  public :: jml_init                  ! subroutine (isCallInit)
+  public :: jml_create_communicator   ! subroutine (comp_id)
   public :: jml_finalize
   public :: jml_abort             ! subroutine () ! 2014/07/03 [ADD]
   public :: jml_GetCommGlobal     ! integer function ()
@@ -36,13 +35,13 @@ module jcup_mpi_lib
   public :: jml_BcastGlobal   ! subroutine (string, source_rank) or (data_array, is, ie, source_rank)
   public :: jml_SendGlobal    ! subroutine (string, dest) or (string, str_len, dest) or (data, is, ie, dest)
   public :: jml_RecvGlobal    ! subroutine (string, source) or (string, str_len, source) or (data, is, ie, source)
+  public :: jml_AllreduceSum
   public :: jml_AllreduceMax  ! subroutine (d, res) 
   public :: jml_AllreduceMin  ! subroutine (d, res)
   public :: jml_ReduceSumLocal  ! subroutine (comp, d, sum)
   public :: jml_ReduceMeanLocal ! subroutine (comp, d, mean) ! 2015/05/18 [NEW]
   public :: jml_ReduceMinLocal
   public :: jml_ReduceMaxLocal
-  public :: jml_AllReduceSum
   public :: jml_AllReduceMaxLocal
   public :: jml_AllReduceMinLocal ! 2015/04/28 [NEW]
   public :: jml_AllReduceSumLocal
@@ -228,7 +227,7 @@ module jcup_mpi_lib
     module procedure jml_recv_int_1d_model , jml_recv_real_1d_model, jml_recv_double_1d_model
     module procedure jml_recv_real_2d_model, jml_recv_double_2d_model
     module procedure jml_recv_real_3d_model, jml_recv_double_3d_model
-  end interface jml_RecvModel
+ end interface jml_RecvModel
  
   interface jml_ISendLocal
     module procedure jml_isend_double_1d_local
@@ -284,14 +283,15 @@ module jcup_mpi_lib
   integer :: GLOBAL_COMM = MPI_COMM_WORLD
   
   type comm_type
-    integer :: group_id
-    integer :: group
-    integer :: num_of_pe ! number of processors in this group
-    integer :: root_rank ! local root rank ( = 0)
-    integer :: my_rank ! my rank in this group
+    integer :: group_id    ! group_id == component_id
+    integer :: group       ! not used 
+    integer :: num_of_pe   ! number of processors in this group
+    integer :: root_rank   ! local root rank ( = 0)
+    integer :: my_rank     ! my rank in this group
     integer :: leader_rank ! global rank of leader processor
-    integer :: mpi_comm ! communicator
-    integer :: pe_offset ! processor number offset on inter communication
+    integer :: mpi_comm    ! communicator
+    integer :: impi_comm   ! waitio_communicator
+    integer :: pe_offset   ! processor number offset on inter communication
     type(comm_type), pointer :: inter_comm(:)
   end type
 
@@ -325,6 +325,7 @@ module jcup_mpi_lib
   integer, private, pointer :: irecv_request(:)
   integer, private, pointer :: irecv_status(:,:)
 
+
 #ifdef EXCHANGE_BY_MPI_RMA
   type mem_window_type
     real(kind=8), pointer :: mem_window_ptr
@@ -340,6 +341,7 @@ module jcup_mpi_lib
   type(mem_window_type_array), private, allocatable :: mem_windows(:,:)
 #endif
 
+  
 contains
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
@@ -370,14 +372,20 @@ subroutine jml_init()
     logical :: is_initialized
     ! MPI Initialize
     
+    
     call MPI_initialized(is_initialized, ierror) ! 2014/08/27 [ADD]
     if (.not.is_initialized) call MPI_INIT(ierror)
 
-    call MPI_COMM_GROUP(GLOBAL_COMM,global%group,ierror)
-    call MPI_COMM_SIZE(GLOBAL_COMM,global%num_of_pe,ierror)
-    call MPI_COMM_RANK(GLOBAL_COMM,global%my_rank,ierror)
-    global%mpi_comm = GLOBAL_COMM
+    call impi_init(ierror)
+    call impi_get_comm_world(global%impi_comm, ierror)
+    call impi_comm_rank(global%impi_comm, global%my_rank, ierror)
+    call impi_comm_size(global%impi_comm, global%num_of_pe, ierror)
+    global%mpi_comm = MPI_COMM_WORLD ! GLOBAL_COMM
     global%root_rank = 0
+    
+    !call MPI_COMM_GROUP(GLOBAL_COMM,global%group,ierror)
+    !call MPI_COMM_SIZE(GLOBAL_COMM,global%num_of_pe,ierror)
+    !call MPI_COMM_RANK(GLOBAL_COMM,global%my_rank,ierror)
 
    ! set initialize flag
    isInitialized = .true.
@@ -393,11 +401,11 @@ subroutine jml_init()
    end if
 
    isend_counter = 0
-   allocate(isend_request(100))
-   allocate(isend_status(MPI_STATUS_SIZE, 100))
+   allocate(isend_request(1000))
+   allocate(isend_status(MPI_STATUS_SIZE, 1000))
    irecv_counter = 0
-   allocate(irecv_request(100))
-   allocate(irecv_status(MPI_STATUS_SIZE, 100))
+   allocate(irecv_request(1000))
+   allocate(irecv_status(MPI_STATUS_SIZE, 1000))
 
 end subroutine jml_init
 
@@ -433,11 +441,18 @@ subroutine jml_create_communicator(my_comp_id)
     integer :: color, key
     integer :: i, j
     integer :: istat
+    integer :: pb_comm, my_rank, my_size
 
+    !call waitio_create_pbgroup(pb_comm, my_comp_id, ierror)
+    !write(0, *) "my waitio_comm = ", my_comp_id, pb_comm
+    !call waitio_group_rank(pb_comm, my_rank, ierror)
+    !write(0, *) "waitio my_rank = ", my_rank
+    !call waitio_group_size(pb_comm, my_size, ierror)
+    !write(0, *) "waitio my_size = ", my_size
+    
     send_buffer(1) = maxval(my_comp_id)
-
-    call mpi_Allreduce(send_buffer, recv_buffer, 1, MPI_INTEGER, MPI_MAX, global%mpi_comm, ierror)
- 
+    
+    call jml_AllreduceMax(send_buffer(1), recv_buffer(1)) !mpi_Allreduce(send_buffer, recv_buffer, 1, MPI_INTEGER, MPI_MAX, global%mpi_comm, ierror)
     num_of_total_component = recv_buffer(1)
 
     allocate(local(num_of_total_component))
@@ -449,25 +464,34 @@ subroutine jml_create_communicator(my_comp_id)
      end do
     end do
 
-    ! create new group
-    ! set color
-    key = global%my_rank
-    do i = 1, num_of_total_component
-      color = MPI_UNDEFINED
-      do j = 1, size(my_comp_id)
-        if (i == my_comp_id(j)) then
-          color = i
-          exit
-        end if
-      end do
-      call jml_create_new_communicator(color, key, local(i)) ! set local communicator
+    ! create local communicator
+    ! This process assumes that one model component is running in one parallel block.
+
+    do i = 1, num_of_total_component ! num_of_total_component == 2
+       if (i == my_comp_id(1)) then ! my component
+          local(i)%group_id = my_comp_id(1)
+          local(i)%group    = local(i)%group_id
+          local(i)%mpi_comm = MPI_COMM_WORLD    
+          call MPI_comm_rank(local(i)%mpi_comm, local(i)%my_rank, ierror)
+          call MPI_comm_size(local(i)%mpi_comm, local(i)%num_of_pe, ierror)
+          local(i)%leader_rank = global%my_rank
+          local(i)%root_rank   = 0 
+       else
+          local(i)%group_id    = 0
+          local(i)%group       = 0
+          local(i)%mpi_comm    = -1
+          local(i)%my_rank     = -1
+          local(i)%num_of_pe   = -1
+          local(i)%leader_rank = 99999999
+          local(i)%root_rank   = 0
+       end if
     end do
-  
+    
 
 
     do i = 1, num_of_total_component
       send_buffer(1) = local(i)%leader_rank
-      call mpi_Allreduce(send_buffer, recv_buffer, 1, MPI_INTEGER, MPI_MAX, global%mpi_comm, ierror)
+      call jml_AllreduceMin(send_buffer(1), recv_buffer(1))
       local(i)%leader_rank = recv_buffer(1)
     end do
 
@@ -495,21 +519,28 @@ subroutine jml_create_communicator(my_comp_id)
       local(i)%leader_rank = send_buffer(1)
     end do
 
+    !write(0, *) "num_of_total_component = ", num_of_total_component
+    !do i = 1, num_of_total_component
+    !   write(0, *) "local comp info ", i, local(i)%group_id, local(i)%group, local(i)%leader_rank, local(i)%num_of_pe, local(i)%my_rank 
+    !end do
+
+    ! This process assumes that one model component is running in one parallel block.
+    ! Therefoce, intercomponent communicator == global communicator
     do i = 1, num_of_total_component
       do j = i, num_of_total_component ! 2015/06/04 [MOD] j = i+1, num_of_total_component
-        call jml_create_intercomponent_communicator(local(i), local(j))
+         if (j == i) cycle
+         call jml_create_intercomponent_communicator(local(i), local(j))
       end do
     end do
 
-    !!!!do i = 1, num_of_total_component
-    !!!!  if (is_my_component(local(i))) then
-    !!!!    call write_comm_info(global%my_rank+100, local(i))
-    !!!!  end if     
-    !!!!end do
-
+    !do i = 1, num_of_total_component
+    !  if (is_my_component(local(i))) then
+    !    call write_comm_info(0, local(i)) !global%my_rank+100, local(i))
+    !  end if     
+    !end do
 
     call init_comm(leader)
-    call jml_create_leader_communicator()
+    call jml_create_leader_communicator(my_comp_id(1))
 
 end subroutine jml_create_communicator
 
@@ -519,7 +550,7 @@ logical function is_my_component(comm)
   implicit none
   type(comm_type), intent(IN) :: comm
 
-  is_my_component = (comm%my_rank/=MPI_UNDEFINED)
+  is_my_component = ((comm%my_rank/=MPI_UNDEFINED).and.(comm%my_rank/=-1))
 
 end function is_my_component
 
@@ -550,11 +581,21 @@ subroutine jml_create_new_communicator(color,key,comm)
   implicit none
   integer, intent(IN) :: color, key
   type(comm_type), intent(INOUT) :: comm
-
+  integer :: new_comm
+  integer :: impi_color
+  
+  if (color <= 0) then
+     impi_color = 0
+  else
+     impi_color = color
+  end if
+  
+  call impi_comm_split(global%impi_comm, impi_color, key, new_comm, ierror)
+  
   comm%group_id = color
 
   call MPI_COMM_SPLIT(global%mpi_comm, color, key, comm%mpi_comm, ierror)
- 
+
   ! reset local procnum, local rank
   if (comm%mpi_comm /= MPI_COMM_NULL) then
       comm%root_rank = 0
@@ -567,13 +608,13 @@ subroutine jml_create_new_communicator(color,key,comm)
       !write(0,*) "mpi local comm ",color,key,local%mpi_comm, local%group, local%num_of_pe, local%my_rank
    end if
 
-
 end subroutine jml_create_new_communicator
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
-subroutine jml_create_leader_communicator()
+subroutine jml_create_leader_communicator(my_comp_id)
   implicit none
+  integer, intent(IN) :: my_comp_id
   integer :: color, key
   integer :: res
   integer :: i
@@ -581,27 +622,17 @@ subroutine jml_create_leader_communicator()
   allocate(leader_pe(0:num_of_total_component-1))
   leader_pe(:) = 0
 
-  color = MPI_UNDEFINED
-  key   = 0 !MPI_UNDEFINED
   do i = 1, num_of_total_component
-    if (local(i)%leader_rank == global%my_rank) then
-      color = 1 ! local leader
-      !key   = global%my_rank
-    end if
+     leader_pe(i-1) = local(i)%leader_rank
   end do
 
-  call jml_create_new_communicator(color, key, leader)
-
-  do i = 1, num_of_total_component
-    if (local(i)%leader_rank == global%my_rank) then
-      leader_pe(i-1) = leader%my_rank
-    end if
-    if (leader%mpi_comm/=MPI_COMM_NULL) then
-      call MPI_ALLREDUCE(leader_pe(i-1:i-1),res,1,MPI_INTEGER,MPI_MAX,leader%mpi_comm,ierror)
-      leader_pe(i-1) = res
-    end if
-  end do
-
+  leader%impi_comm = global%impi_comm
+  leader%my_rank   = global%my_rank
+  call set_current_component(my_comp_id)
+  if (leader%my_rank /= current_comp%leader_rank) then
+     leader%my_rank = MPI_UNDEFINED
+  end if
+  
 end subroutine jml_create_leader_communicator
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
@@ -616,38 +647,24 @@ subroutine jml_create_intercomponent_communicator(comm1, comm2)
   integer :: color
   integer :: target_id
 
-  new_group = MPI_UNDEFINED
-  color = MPI_UNDEFINED
-
   if (is_my_component(comm1).or.is_my_component(comm2)) then
-    color = 1
-  end if
-
-  call mpi_comm_split(global%mpi_comm, color, 0, new_comm, ierror)
-
-  if (is_my_component(comm1).or.is_my_component(comm2)) then
-
-    call mpi_comm_size(new_comm, new_size, ierror)
-    call mpi_comm_rank(new_comm, new_rank, ierror)
-
-    !write(0,*) "create new_group ", global%my_rank, new_group, comm1%group_id, comm2%group_id, &
-    !                                new_comm, new_size, new_rank
 
     if (is_my_component(comm1)) then
       target_id = comm2%group_id
-      comm1%inter_comm(target_id)%group_id = target_id
-      comm1%inter_comm(target_id)%mpi_comm = new_comm
-      comm1%inter_comm(target_id)%my_rank = new_rank
+      comm1%inter_comm(target_id)%group_id  = target_id
+      comm1%inter_comm(target_id)%impi_comm = global%impi_comm 
+      comm1%inter_comm(target_id)%my_rank   = global%my_rank
       comm1%inter_comm(target_id)%pe_offset = cal_pe_offset(comm1%leader_rank, comm1%num_of_pe, comm2%leader_rank)
     end if
     if (is_my_component(comm2)) then
       target_id = comm1%group_id
-      comm2%inter_comm(target_id)%group_id = target_id
-      comm2%inter_comm(target_id)%mpi_comm = new_comm
-      comm2%inter_comm(target_id)%my_rank = new_rank
+      comm2%inter_comm(target_id)%group_id  = target_id
+      comm2%inter_comm(target_id)%impi_comm = global%impi_comm
+      comm2%inter_comm(target_id)%my_rank   = global%my_rank
       comm2%inter_comm(target_id)%pe_offset = cal_pe_offset(comm2%leader_rank, comm2%num_of_pe, comm1%leader_rank)
     end if
-  end if
+
+ end if
 
 end subroutine jml_create_intercomponent_communicator
 
@@ -658,6 +675,9 @@ integer function cal_pe_offset(my_leader_rank, my_size, target_leader_rank)
   integer, intent(IN) :: my_leader_rank, my_size
   integer, intent(IN) :: target_leader_rank
  
+  cal_pe_offset = target_leader_rank
+  return
+  
   cal_pe_offset = 0
   if (target_leader_rank>=my_leader_rank+my_size) then
     cal_pe_offset = my_size
@@ -703,14 +723,18 @@ subroutine jml_finalize(is_call_finalize)
     logical, intent(IN) :: is_call_finalize
     logical :: is_finalized
     integer :: buffer_address, buffer_size
-
+    integer :: int_buffer(1)
+    
     call mpi_buffer_detach(buffer_address, buffer_size, ierror)
     if (associated(local_buffer)) deallocate(local_buffer)
 
     if (.not.is_call_finalize) return
 
+    call jml_BcastGlobal(int_buffer, 1, 1, 0)
+    
     if (isInitialized) then
-      call MPI_finalized(is_finalized, ierror)
+       call impi_finalize(ierror)
+       call MPI_finalized(is_finalized, ierror)
       if (.not.is_finalized) call MPI_FINALIZE(ierror)
     end if
 
@@ -880,7 +904,7 @@ subroutine jml_bcast_string_global_1(string, source_rank)
   character(len=*), intent(INOUT) :: string
   integer, intent(IN) :: source_rank
 
-  call MPI_Bcast(string,len(string),MPI_CHARACTER,source_rank,global%mpi_comm,ierror)
+  call impi_bcast(string,len(string),IMPI_CHAR,source_rank,global%impi_comm,ierror)
 
 end subroutine jml_bcast_string_global_1
 
@@ -892,7 +916,7 @@ subroutine jml_bcast_string_global_2(string, str_len, source_rank)
   character(len=str_len), intent(INOUT) :: string(:)
   integer, intent(IN) :: source_rank
 
-  call MPI_Bcast(string, size(string)*str_len, MPI_CHARACTER,source_rank,global%mpi_comm,ierror)
+  call impi_bcast(string, size(string)*str_len, IMPI_CHAR,source_rank,global%impi_comm,ierror)
 
 end subroutine jml_bcast_string_global_2
 
@@ -912,7 +936,7 @@ subroutine jml_bcast_int_1d_global(data,is,ie,source)
     source_rank = global%root_rank
   end if
 
-  call MPI_Bcast(data(is:),ie-is+1,MPI_INTEGER,source_rank,global%mpi_comm,ierror)
+  call impi_bcast(data(is:),ie-is+1,IMPI_INT,source_rank,global%impi_comm,ierror)
 
 end subroutine jml_bcast_int_1d_global
 
@@ -932,7 +956,7 @@ subroutine jml_bcast_real_1d_global(data,is,ie,source)
     source_rank = global%root_rank
   end if
 
-  call MPI_Bcast(data(is:),ie-is+1,MPI_FLOAT,source_rank,global%mpi_comm,ierror)
+  call impi_bcast(data(is:),ie-is+1,IMPI_FLOAT,source_rank,global%mpi_comm,ierror)
 
 end subroutine jml_bcast_real_1d_global
 
@@ -952,7 +976,7 @@ subroutine jml_bcast_double_1d_global(data,is,ie,source)
     source_rank = global%root_rank
   end if
 
-  call MPI_Bcast(data(is:),ie-is+1,MPI_DOUBLE_PRECISION,source_rank,global%mpi_comm,ierror)
+  call impi_bcast(data(is:),ie-is+1,IMPI_DOUBLE,source_rank,global%mpi_comm,ierror)
 
 end subroutine jml_bcast_double_1d_global
 
@@ -966,8 +990,8 @@ subroutine jml_send_string_global_1(string, dest)
   integer :: request
   integer :: status(MPI_STATUS_SIZE)
 
-  call MPI_ISEND(string,len(string),MPI_CHARACTER,dest,MPI_MY_TAG,global%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_isend(string,len(string),IMPI_CHAR,dest,MPI_MY_TAG,global%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
   
 end subroutine jml_send_string_global_1
 
@@ -982,8 +1006,8 @@ subroutine jml_send_string_global_2(string, str_len, dest)
   integer :: request
   integer :: status(MPI_STATUS_SIZE)
 
-  call MPI_ISEND(string,size(string)*str_len,MPI_CHARACTER,dest,MPI_MY_TAG,global%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_isend(string,size(string)*str_len,IMPI_CHAR,dest,MPI_MY_TAG,global%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
   
 end subroutine jml_send_string_global_2
 
@@ -997,8 +1021,8 @@ subroutine jml_recv_string_global_1(string, source)
   integer :: request
   integer :: status(MPI_STATUS_SIZE)
 
-  call MPI_IRECV(string,len(string),MPI_CHARACTER,source,MPI_MY_TAG,global%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(string,len(string),IMPI_CHAR,source,MPI_MY_TAG,global%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
 end subroutine jml_recv_string_global_1
 
@@ -1013,8 +1037,8 @@ subroutine jml_recv_string_global_2(string, str_len, source)
   integer :: request
   integer :: status(MPI_STATUS_SIZE)
 
-  call MPI_IRECV(string,size(string)*str_len,MPI_CHARACTER,source,MPI_MY_TAG,global%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(string,size(string)*str_len,IMPI_CHAR,source,MPI_MY_TAG,global%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
 end subroutine jml_recv_string_global_2
 
@@ -1031,8 +1055,8 @@ subroutine jml_send_int_1d_global(data,is,ie,dest)
   integer :: status(MPI_STATUS_SIZE)
 
   buffer(is:ie) = data(is:ie)
-  call MPI_ISEND(buffer,ie-is+1,MPI_INTEGER,dest,MPI_MY_TAG,global%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_isend(buffer,ie-is+1,IMPI_INT,dest,MPI_MY_TAG,global%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
 end subroutine jml_send_int_1d_global
 
@@ -1048,8 +1072,8 @@ subroutine jml_recv_int_1d_global(data,is,ie,source)
   integer :: request
   integer :: status(MPI_STATUS_SIZE)
 
-  call MPI_IRECV(buffer,ie-is+1,MPI_INTEGER,source,MPI_MY_TAG,global%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_INT,source,MPI_MY_TAG,global%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -1064,7 +1088,7 @@ subroutine jml_reduce_sum_int_1d(d, sum)
   integer, intent(INOUT) :: sum
   integer, parameter :: ONE = 1
 
-  call MPI_REDUCE(d, sum, ONE, MPI_INTEGER,MPI_SUM,MPI_MY_TAG,global%mpi_comm,ierror)
+  call impi_reduce(d, sum, ONE, IMPI_INT,IMPI_SUM,MPI_MY_TAG,global%impi_comm,ierror)
 
 end subroutine jml_reduce_sum_int_1d
 
@@ -1077,7 +1101,7 @@ subroutine jml_allreduce_sumint1d(d ,sum)
   integer, intent(INOUT) :: sum
   integer, parameter :: ONE = 1
 
-  call MPI_ALLREDUCE(d, sum, ONE, MPI_INTEGER,MPI_SUM,global%mpi_comm,ierror)
+  call impi_allreduce(d, sum, ONE, IMPI_INT,IMPI_SUM,global%impi_comm,ierror)
 
 end subroutine jml_allreduce_sumint1d
 
@@ -1087,7 +1111,7 @@ subroutine jml_allreduce_sumint1dar(nd,d ,sum)
   integer, intent(IN)  :: d(nd)
   integer, intent(INOUT) :: sum(nd)
 
-  call MPI_ALLREDUCE(d, sum, nd, MPI_INTEGER,MPI_SUM,global%mpi_comm,ierror)
+  call impi_allreduce(d, sum, nd, IMPI_INT,IMPI_SUM,global%impi_comm,ierror)
 
 end subroutine jml_allreduce_sumint1dar
 
@@ -1100,7 +1124,7 @@ subroutine jml_allreduce_maxint1d(d, res)
   integer, intent(INOUT) :: res
   integer, parameter :: ONE = 1
 
-  call MPI_ALLREDUCE(d, res, ONE, MPI_INTEGER,MPI_MAX,global%mpi_comm,ierror)
+  call impi_allreduce(d, res, ONE, IMPI_INT,IMPI_MAX,global%impi_comm,ierror)
 
 end subroutine jml_allreduce_maxint1d
 
@@ -1113,7 +1137,7 @@ subroutine jml_allreduce_minint1d(d,res)
   integer, intent(INOUT) :: res
   integer, parameter :: ONE = 1
 
-  call MPI_ALLREDUCE(d, res, ONE, MPI_INTEGER,MPI_MIN,global%mpi_comm,ierror)
+  call impi_allreduce(d, res, ONE, IMPI_INT, IMPI_MIN, global%impi_comm,ierror)
 
 end subroutine jml_allreduce_minint1d
 
@@ -1893,6 +1917,9 @@ function jml_ProbeLeader(source, tag) result (res)
     return
   end if
 
+  res = .false.
+  return
+  
   source_rank = leader_pe(source)
 
   call mpi_iprobe(source_rank, tag, leader%mpi_comm, res, status, ierror)
@@ -1917,8 +1944,8 @@ subroutine jml_send_string_leader(data, dest)
   if (dest_rank == leader%my_rank) then
     call MPI_BSEND(data,len(data),MPI_CHARACTER,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(data,len(data),MPI_CHARACTER,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(data,len(data),IMPI_CHAR,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_string_leader
@@ -1940,8 +1967,8 @@ subroutine jml_recv_string_leader(data, source)
 
   !!write(0,*) "jml_recv_int_1d_leader ", global%my_rank, source_rank, ie-is+1
 
-  call MPI_IRECV(data,len(data),MPI_INTEGER,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(data,len(data),IMPI_CHAR,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
 end subroutine jml_recv_string_leader
 
@@ -1973,8 +2000,8 @@ subroutine jml_send_int_1d_leader(data,is,ie,dest)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_INT,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_int_1d_leader
@@ -1998,8 +2025,8 @@ subroutine jml_recv_int_1d_leader(data,is,ie,source)
 
   !!write(0,*) "jml_recv_int_1d_leader ", global%my_rank, source_rank, ie-is+1
 
-  call MPI_IRECV(buffer,ie-is+1,MPI_INTEGER,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_INT,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -2029,9 +2056,9 @@ subroutine jml_send_int_2d_leader(data,is,ie,js,je,dest)
   if (dest_rank == leader%my_rank) then
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
-  else
-    call MPI_ISEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+ else
+    call impi_isend(buffer,data_size,IMPI_INT,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_int_2d_leader
@@ -2053,8 +2080,8 @@ subroutine jml_recv_int_2d_leader(data,is,ie,js,je,source)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1),MPI_INTEGER,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1),IMPI_INT,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je) = buffer(is:ie,js:je)
 
@@ -2084,8 +2111,8 @@ subroutine jml_send_int_3d_leader(data,is,ie,js,je,ks,ke,dest)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_INT,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_int_3d_leader
@@ -2107,8 +2134,8 @@ subroutine jml_recv_int_3d_leader(data,is,ie,js,je,ks,ke,source)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),MPI_INTEGER,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),IMPI_INT,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je,ks:ke) = buffer(is:ie,js:je,ks:ke)
 
@@ -2147,8 +2174,8 @@ subroutine jml_send_real_1d_leader(data,is,ie,dest,tag)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,MPI_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,MPI_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_FLOAT,dest_rank,MPI_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_real_1d_leader
@@ -2178,8 +2205,8 @@ subroutine jml_recv_real_1d_leader(data,is,ie,source,tag)
 
   source_rank = leader_pe(source)
   
-  call MPI_IRECV(buffer,ie-is+1,MPI_REAL,source_rank,MPI_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_FLOAT,source_rank,MPI_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -2210,8 +2237,8 @@ subroutine jml_send_real_2d_leader(data,is,ie,js,je,dest)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_FLOAT,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_real_2d_leader
@@ -2233,8 +2260,8 @@ subroutine jml_recv_real_2d_leader(data,is,ie,js,je,source)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1),MPI_REAL,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1),IMPI_FLOAT,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je) = buffer(is:ie,js:je)
 
@@ -2265,8 +2292,8 @@ subroutine jml_send_real_3d_leader(data,is,ie,js,je,ks,ke,dest)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_FLOAT,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_real_3d_leader
@@ -2288,8 +2315,8 @@ subroutine jml_recv_real_3d_leader(data,is,ie,js,je,ks,ke,source)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),MPI_REAL,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),IMPI_FLOAT,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je,ks:ke) = buffer(is:ie,js:je,ks:ke)
 
@@ -2327,8 +2354,8 @@ subroutine jml_send_double_1d_leader(data,is,ie,dest,tag)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,MPI_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,MPI_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_DOUBLE,dest_rank,MPI_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_double_1d_leader
@@ -2358,8 +2385,8 @@ subroutine jml_recv_double_1d_leader(data,is,ie,source,tag)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,ie-is+1,MPI_DOUBLE_PRECISION,source_rank,MPI_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_DOUBLE,source_rank,MPI_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -2390,8 +2417,8 @@ subroutine jml_send_double_2d_leader(data,is,ie,js,je,dest)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_DOUBLE,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_double_2d_leader
@@ -2413,8 +2440,8 @@ subroutine jml_recv_double_2d_leader(data,is,ie,js,je,source)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1),MPI_DOUBLE_PRECISION,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1),IMPI_DOUBLE,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je) = buffer(is:ie,js:je)
 
@@ -2445,8 +2472,8 @@ subroutine jml_send_double_3d_leader(data,is,ie,js,je,ks,ke,dest)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,MPI_MY_TAG,leader%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_DOUBLE,dest_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_double_3d_leader
@@ -2468,8 +2495,8 @@ subroutine jml_recv_double_3d_leader(data,is,ie,js,je,ks,ke,source)
 
   source_rank = leader_pe(source)
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),MPI_DOUBLE_PRECISION,source_rank,MPI_MY_TAG,leader%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),IMPI_DOUBLE,source_rank,MPI_MY_TAG,leader%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je,ks:ke) = buffer(is:ie,js:je,ks:ke)
 
@@ -2593,8 +2620,8 @@ subroutine jml_send_int_1d_model(comp, data,is,ie,dest_model,dest_pe)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_INTEGER,dest_rank,MPI_MY_TAG,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_INT,dest_rank,MPI_MY_TAG,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_int_1d_model
@@ -2623,8 +2650,8 @@ subroutine jml_send_real_1d_model(comp,data,is,ie,dest_model,dest_pe)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_FLOAT,dest_rank,0,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_real_1d_model
@@ -2653,8 +2680,8 @@ subroutine jml_send_real_2d_model(comp,data,is,ie,js,je,dest_model,dest_pe)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_FLOAT,dest_rank,0,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_real_2d_model
@@ -2683,8 +2710,8 @@ subroutine jml_send_real_3d_model(comp,data,is,ie,js,je,ks,ke,dest_model,dest_pe
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_REAL,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_FLOAT,dest_rank,0,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_real_3d_model
@@ -2713,8 +2740,8 @@ subroutine jml_send_double_1d_model(comp,data,is,ie,dest_model,dest_pe)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_DOUBLE,dest_rank,0,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_double_1d_model
@@ -2743,8 +2770,8 @@ subroutine jml_send_double_2d_model(comp,data,is,ie,js,je,dest_model,dest_pe)
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_DOUBLE,dest_rank,0,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_double_2d_model
@@ -2773,8 +2800,8 @@ subroutine jml_send_double_3d_model(comp,data,is,ie,js,je,ks,ke,dest_model,dest_
     call check_buffer_size(data_size)
     call MPI_BSEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
-    call MPI_ISEND(buffer,data_size,MPI_DOUBLE_PRECISION,dest_rank,0,local(comp)%inter_comm(dest_model)%mpi_comm,request,ierror)
-    call MPI_WAIT(request,status,ierror)
+    call impi_isend(buffer,data_size,IMPI_DOUBLE,dest_rank,0,local(comp)%inter_comm(dest_model)%impi_comm,request,ierror)
+    call impi_wait(request,status,ierror)
   end if
 
 end subroutine jml_send_double_3d_model
@@ -2797,8 +2824,8 @@ subroutine jml_recv_int_1d_model(comp,data,is,ie,source_model,source_pe)
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,ie-is+1,MPI_INTEGER,source_rank,MPI_MY_TAG,local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_INT,source_rank,MPI_MY_TAG,local(comp)%inter_comm(source_model)%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -2820,9 +2847,9 @@ subroutine jml_recv_real_1d_model(comp,data,is,ie,source_model,source_pe)
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,(ie-is+1),MPI_REAL,source_rank,0, &
-                 local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1),IMPI_FLOAT,source_rank,0, &
+                  local(comp)%inter_comm(source_model)%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -2844,9 +2871,9 @@ subroutine jml_recv_real_2d_model(comp,data,is,ie,js,je,source_model,source_pe)
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1),MPI_REAL,source_rank,0, &
-                 local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1),IMPI_FLOAT,source_rank,0, &
+                  local(comp)%inter_comm(source_model)%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je) = buffer(is:ie,js:je)
 
@@ -2868,9 +2895,9 @@ subroutine jml_recv_real_3d_model(comp,data,is,ie,js,je,ks,ke,source_model,sourc
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),MPI_REAL,source_rank,0, &
-                 local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),IMPI_FLOAT,source_rank,0, &
+                  local(comp)%inter_comm(source_model)%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je,ks:ke) = buffer(is:ie,js:je,ks:ke)
 
@@ -2891,9 +2918,9 @@ subroutine jml_recv_double_1d_model(comp,data,is,ie,source_model,source_pe)
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,ie-is+1,MPI_DOUBLE_PRECISION,source_rank,0,&
-                 local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,ie-is+1,IMPI_DOUBLE,source_rank,0,&
+                 local(comp)%inter_comm(source_model)%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie) = buffer(is:ie)
 
@@ -2915,9 +2942,9 @@ subroutine jml_recv_double_2d_model(comp,data,is,ie,js,je,source_model,source_pe
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1),MPI_DOUBLE_PRECISION,source_rank,0, &
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1),IMPI_DOUBLE,source_rank,0, &
                  local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je) = buffer(is:ie,js:je)
 
@@ -2939,9 +2966,9 @@ subroutine jml_recv_double_3d_model(comp,data,is,ie,js,je,ks,ke,source_model,sou
 
   source_rank = source_pe + local(comp)%inter_comm(source_model)%pe_offset
 
-  call MPI_IRECV(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),MPI_DOUBLE_PRECISION,source_rank,0, &
-                 local(comp)%inter_comm(source_model)%mpi_comm,request,ierror)
-  call MPI_WAIT(request,status,ierror)
+  call impi_irecv(buffer,(ie-is+1)*(je-js+1)*(ke-ks+1),IMPI_DOUBLE,source_rank,0, &
+                  local(comp)%inter_comm(source_model)%impi_comm,request,ierror)
+  call impi_wait(request,status,ierror)
 
   data(is:ie,js:je,ks:ke) = buffer(is:ie,js:je,ks:ke)
 
@@ -3163,8 +3190,8 @@ subroutine jml_isend_double_1d_model(comp, data,is,ie,dest_model,dest_pe, exchan
       stop 9999
     end if
 
-    call MPI_ISEND(data,data_size,MPI_DOUBLE_PRECISION,dest_rank,tag, &
-                   local(comp)%inter_comm(dest_model)%mpi_comm, isend_request(isend_counter),ierror)
+    call impi_isend(data,data_size,IMPI_DOUBLE,dest_rank,tag, &
+                    local(comp)%inter_comm(dest_model)%impi_comm, isend_request(isend_counter),ierror)
   end if
 
 end subroutine jml_isend_double_1d_model
@@ -3197,7 +3224,7 @@ subroutine jml_isend_real_1d_model(comp, data,is,ie,dest_model,dest_pe, exchange
   if (dest_rank == jml_GetMyrankModel(comp, dest_model)) then !local(comp)%my_rank) then
     !write(0,*) "mpi_IBsend called ", comp, dest_model, dest_pe, exchange_tag
     call check_buffer_size(data_size)
-    call MPI_BSEND(data,data_size,MPI_FLOAT,dest_rank,tag,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
+    call MPI_BSEND(data,data_size,MPI_REAL,dest_rank,tag,local(comp)%inter_comm(dest_model)%mpi_comm,ierror)
   else
     isend_counter = isend_counter + 1
 
@@ -3208,8 +3235,8 @@ subroutine jml_isend_real_1d_model(comp, data,is,ie,dest_model,dest_pe, exchange
       stop 9999
     end if
 
-    call MPI_ISEND(data,data_size,MPI_FLOAT,dest_rank,tag, &
-                   local(comp)%inter_comm(dest_model)%mpi_comm, isend_request(isend_counter),ierror)
+    call impi_isend(data,data_size,IMPI_FLOAT,dest_rank,tag, &
+                    local(comp)%inter_comm(dest_model)%impi_comm, isend_request(isend_counter),ierror)
   end if
 
 end subroutine jml_isend_real_1d_model
@@ -3253,8 +3280,8 @@ subroutine jml_isend_int_1d_model(comp, data,is,ie,dest_model,dest_pe, exchange_
       stop 9999
     end if
 
-    call MPI_ISEND(data,data_size,MPI_INTEGER,dest_rank,tag, &
-                   local(comp)%inter_comm(dest_model)%mpi_comm, isend_request(isend_counter),ierror)
+    call impi_isend(data,data_size,IMPI_INT,dest_rank,tag, &
+                   local(comp)%inter_comm(dest_model)%impi_comm, isend_request(isend_counter),ierror)
   end if
 
 end subroutine jml_isend_int_1d_model
@@ -3292,8 +3319,8 @@ subroutine jml_irecv_double_1d_model(comp, data,is,ie,source_model,source_pe, ex
       stop 9999
     end if
 
-  call MPI_IRECV(data,ie-is+1,MPI_DOUBLE_PRECISION,source_rank,tag, &
-                 local(comp)%inter_comm(source_model)%mpi_comm, irecv_request(irecv_counter),ierror)
+  call impi_irecv(data,ie-is+1,IMPI_DOUBLE,source_rank,tag, &
+                 local(comp)%inter_comm(source_model)%impi_comm, irecv_request(irecv_counter),ierror)
 
 
 end subroutine jml_irecv_double_1d_model
@@ -3331,8 +3358,8 @@ subroutine jml_irecv_real_1d_model(comp, data,is,ie,source_model,source_pe, exch
       stop 9999
     end if
 
-  call MPI_IRECV(data,ie-is+1,MPI_FLOAT,source_rank,tag, &
-                 local(comp)%inter_comm(source_model)%mpi_comm, irecv_request(irecv_counter),ierror)
+  call impi_irecv(data,ie-is+1,IMPI_FLOAT,source_rank,tag, &
+                 local(comp)%inter_comm(source_model)%impi_comm, irecv_request(irecv_counter),ierror)
 
 
 end subroutine jml_irecv_real_1d_model
@@ -3369,8 +3396,9 @@ subroutine jml_irecv_int_1d_model(comp, data,is,ie,source_model,source_pe, excha
       call MPI_abort(MPI_COMM_WORLD, tag, ierror)
       stop 9999
     end if
-  call MPI_IRECV(data,ie-is+1,MPI_INTEGER,source_rank,tag, &
-                 local(comp)%inter_comm(source_model)%mpi_comm, irecv_request(irecv_counter),ierror)
+
+   call impi_irecv(data,ie-is+1,IMPI_INT,source_rank,tag, &
+                   local(comp)%inter_comm(source_model)%impi_comm, irecv_request(irecv_counter),ierror)
 
 
 end subroutine jml_irecv_int_1d_model
@@ -3503,21 +3531,33 @@ end subroutine jml_irecv_double_1d_model_compress
 
 subroutine jml_send_waitall()
   implicit none
+  integer :: i
   
   if (isend_counter==0) return
-  call mpi_WaitAll(isend_counter, isend_request, isend_status, ierror)
+  !call mpi_WaitAll(isend_counter, isend_request, isend_status, ierror)
+
+  do i = 1, isend_counter
+     call impi_wait(isend_request(i), isend_status, ierror)
+  end do
   isend_counter = 0
   isend_request(:) = 0
-   
+  
+  
 end subroutine jml_send_waitall
 
 !=======+=========+=========+=========+=========+=========+=========+=========+
 
 subroutine jml_recv_waitall()
   implicit none
+  integer :: i
   
   if (irecv_counter==0) return
-  call mpi_WaitAll(irecv_counter, irecv_request, irecv_status, ierror)
+  !call mpi_WaitAll(irecv_counter, irecv_request, irecv_status, ierror)
+
+  do i = 1, irecv_counter
+     call impi_wait(irecv_request(i), irecv_status, ierror)
+  end do
+  
   irecv_counter = 0
   irecv_request(:) = 0
   
@@ -3537,6 +3577,9 @@ function jml_ProbeAll(source) result (res)
     return
   end if
 
+  res = .false.
+  return
+  
   source_rank = leader_pe(source)
 
   call mpi_iprobe(source_rank, MPI_ANY_TAG, leader%mpi_comm, res, status, ierror)

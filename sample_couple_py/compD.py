@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), "/work/jh210022a/share/h3-Open-UTIL-MP/h3ou/include"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "/work/jh210022a/share/h3-Open-UTIL-MP/h3ou/include/aquarius"))
 import h3ou as h3opp
 import numpy as np
 from datetime import datetime, timedelta

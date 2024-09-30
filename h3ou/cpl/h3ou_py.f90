@@ -641,7 +641,7 @@ subroutine h3oup_bcast_model_int(source_name, source_len, target_name, target_le
   integer, intent(IN)          :: array_size
   integer, intent(INOUT)       :: data(array_size)
 
-  call h3ou_bcast_model(trim(get_char_str(source_name, source_len)), \
+  call h3ou_bcast_model(trim(get_char_str(source_name, source_len)), &
                         trim(get_char_str(target_name, target_len)), data)
   
 end subroutine h3oup_bcast_model_int
@@ -658,7 +658,7 @@ subroutine h3oup_bcast_model_real(source_name, source_len, target_name, target_l
   integer, intent(IN)          :: array_size
   real(kind=4), intent(INOUT)  :: data(array_size)
 
-  call h3ou_bcast_model(trim(get_char_str(source_name, source_len)), \
+  call h3ou_bcast_model(trim(get_char_str(source_name, source_len)), &
                         trim(get_char_str(target_name, target_len)), data)
 
                       end subroutine h3oup_bcast_model_real
@@ -675,7 +675,7 @@ subroutine h3oup_bcast_model_double(source_name, source_len, target_name, target
   integer, intent(IN)          :: array_size
   real(kind=8), intent(INOUT)  :: data(array_size)
 
-  call h3ou_bcast_model(trim(get_char_str(source_name, source_len)), \
+  call h3ou_bcast_model(trim(get_char_str(source_name, source_len)), &
                         trim(get_char_str(target_name, target_len)), data)
   
 end subroutine h3oup_bcast_model_double

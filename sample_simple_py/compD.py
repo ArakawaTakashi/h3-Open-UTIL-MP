@@ -37,24 +37,24 @@ target_array = h3opp.h3ou_bcast_global_real("compB", target_array_real)
 
 print("bcast from compB = ", target_array)
 
-target_array = h3opp.h3ou_bcast_global_double("compC", target_array_double)
+target_array = h3opp.h3ou_bcast_global_double("compD", my_array_double)
 
-print("bcast from compC = ", target_array)
+print("bcast from compD = ", target_array)
 
 # bcast model
 
-target_array = h3opp.h3ou_bcast_model_real("compC", "compD", target_array_real)
+target_array = h3opp.h3ou_bcast_model_real("compB", "compD", target_array_real)
 
 print("compD bcast model from compC = ", target_array)
 
-target_array = h3opp.h3ou_bcast_model_double("compD", "compC", my_array_double)
+target_array = h3opp.h3ou_bcast_model_double("compD", "compB", my_array_double)
 
 # send/recvt model
 
 if (my_rank == 0):
-    target_array = h3opp.h3ou_recv_model_real("compC", 0, target_array_real)
+    target_array = h3opp.h3ou_recv_model_real("compB", 0, target_array_real)
     print("compD send/recv model, ", target_array)
-    h3opp.h3ou_send_model_double("compC", 0, my_array_double)
+    h3opp.h3ou_send_model_double("compB", 0, my_array_double)
 
 # bcast local
 

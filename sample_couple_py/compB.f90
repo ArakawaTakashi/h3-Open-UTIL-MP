@@ -1,9 +1,8 @@
-program compA
-  use h3ou_api
+program compB
   use mpi
+  use h3ou_api
   implicit none
-  
-  character(len=5)          :: my_name = "compA"
+  character(len=5)          :: my_name = "compB"
   integer                   :: time_array(6) = [2000, 1, 1, 0, 0, 0]
   integer, parameter        :: delta_t = 3600
   integer                   :: my_comm, my_group, my_size, my_rank
@@ -13,7 +12,6 @@ program compA
   integer, allocatable      :: send_index(:)
   integer, allocatable      :: recv_index(:)
   real(kind=8), allocatable :: coef(:)
-  
   integer, allocatable      :: my_array_int(:)
   real(kind=4), allocatable :: my_array_real(:)
   real(kind=8), allocatable :: my_array_double(:)
@@ -53,7 +51,7 @@ program compA
      my_grid(i) = array_size * my_rank + i
   end do
 
-  call h3ou_def_grid(my_grid, "compA", "compA_grid1", 20)
+  call h3ou_def_grid(my_grid, "compB", "compB_grid1", 20)
   call h3ou_end_grid_def()
 
   if (my_rank == 0) then
@@ -71,47 +69,28 @@ program compA
      allocate(coef(1))
   end if
 
-  call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compB", "compB_grid1", 1, &
-       send_index, recv_index, coef)
+  call h3ou_set_interpolation_table("compB", "compA", "compA_grid1", "compB", "compB_grid1", 1)
   
-  call h3ou_set_interpolation_table("compA", "compB", "compB_grid1", "compA", "compA_grid1", 1)
-  
-  call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compC", "compC_grid1", 1, &
+  call h3ou_set_interpolation_table("compB", "compB", "compB_grid1", "compA", "compA_grid1", 1, &
        send_index, recv_index, coef)
-
-  call h3ou_set_interpolation_table("compA", "compC", "compC_grid1", "compA", "compA_grid1", 1, &
-       send_index, recv_index, coef)
-
-  !call h3ou_set_interpolation_table("compA", "compA", "compA_grid1", "compD", "compD_grid1", 1, &
-  !     send_index, recv_index, coef)
-
-  !call h3ou_set_interpolation_table("compA", "compD", "compD_grid1", "compA", "compA_grid1", 1, &
-  !     send_index, recv_index, coef)
 
   call h3ou_init_time(time_array)
-
+  
   ! set my array
   do i = 1, array_size
-     my_array_int(i)    = 10000 + my_rank * 100 + i
+     my_array_int(i)    = 20000 + my_rank * 100 + i
      my_array_real(i)   = my_array_int(i)
      my_array_double(i) = my_array_int(i)
   end do
 
-
-  call h3ou_put_data("compA_var1", my_array_double)
-  call h3ou_put_data("compA_var2", my_array_double)
-  !call h3ou_put_data("compA_var3", my_array_double)
+  call h3ou_put_data("compB_var1", my_array_double)
 
   do t = 1, 24
      call h3ou_set_time(my_name, time_array, delta_t)
 
-     call h3ou_get_data("compB_var1", target_array_double, is_recv_ok = is_get_ok)
-     call h3ou_get_data("compC_var1", target_array_double, is_recv_ok = is_get_ok)
-     !call h3ou_get_data("compD_var1", target_array_double, is_recv_ok = is_get_ok)
+     call h3ou_get_data("compA_var1", target_array_double, is_recv_ok = is_get_ok)
 
-     call h3ou_put_data("compA_var1", my_array_double)
-     call h3ou_put_data("compA_var2", my_array_double)
-     !call h3ou_put_data("compA_var3", my_array_double)
+     call h3ou_put_data("compB_var1", my_array_double)
 
      call h3ou_inc_time(time_array, delta_t)
      
@@ -119,4 +98,4 @@ program compA
 
   call h3ou_coupling_end(time_array, .true.)
 
-end program compA
+end program compB
